@@ -17,6 +17,10 @@ Point understory at your GitHub repositories and it scans them every hour: **eve
 
 Everything runs in a single container with a single SQLite file. No SaaS, no agents in your CI, no code execution from scanned repositories.
 
+<p align="center">
+  <img src="docs/dashboard.jpg" alt="The understory dashboard: severity totals, a 30-day open-vulnerabilities trend, and per-project cards with severity bars" width="900" />
+</p>
+
 ## Features
 
 - **Full dependency extraction** — parses `package-lock.json` (v1/v2/v3) and `bun.lock` including workspaces, `catalog:` ranges, peer dependencies, and depth. Snapshots are content-addressed by lockfile hash, so unchanged repositories cost almost nothing to rescan.

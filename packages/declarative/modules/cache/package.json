@@ -1,0 +1,24 @@
+{
+	"name": "@declarativejs/module-cache",
+	"version": "0.0.1",
+	"description": "Optional cache adapters implementing core's CachePort. Ships an in-memory adapter (a Redis adapter follows the same interface). Wired in environment.ts via withCache; not installed => ports read through to the source.",
+	"type": "module",
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"exports": {
+		".": {
+			"default": "./src/index.ts",
+			"types": "./src/index.ts"
+		}
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@declarativejs/core": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/bun": "catalog:",
+		"typescript": "catalog:"
+	}
+}

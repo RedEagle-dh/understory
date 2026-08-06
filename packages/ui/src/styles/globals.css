@@ -42,6 +42,21 @@
     --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
     --sidebar-border: oklch(0.92 0.004 286.32);
     --sidebar-ring: oklch(0.705 0.015 286.067);
+    --severity-critical: oklch(0.482 0.197 28.624);
+    --severity-high: oklch(0.647 0.217 36.851);
+    --severity-moderate: oklch(0.681 0.162 75.834);
+    --severity-low: oklch(0.619 0.207 259.232);
+    --severity-info: oklch(0.554 0.046 257.417);
+    /*
+     * Fill palette for LARGE ADJACENT severity fills (chart bands, stacked
+     * bars). Validated with the dataviz palette checker (lightness band,
+     * chroma floor, CVD + normal-vision separation, surface contrast) for
+     * each mode — do not eyeball changes to these; re-run the validator.
+     */
+    --chart-severity-critical: oklch(0.482 0.197 28.624);
+    --chart-severity-high: oklch(0.647 0.217 36.851);
+    --chart-severity-moderate: oklch(0.751 0.155 78.308);
+    --chart-severity-low: oklch(0.619 0.207 259.232);
 }
 
 .dark {
@@ -76,6 +91,16 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.552 0.016 285.938);
+    --severity-critical: oklch(0.704 0.191 22.216);
+    --severity-high: oklch(0.75 0.183 55.934);
+    --severity-moderate: oklch(0.795 0.184 86.047);
+    --severity-low: oklch(0.707 0.165 254.624);
+    --severity-info: oklch(0.704 0.04 256.788);
+    /* Dark chart fills are their own validated steps, NOT a flip of light. */
+    --chart-severity-critical: oklch(0.503 0.201 11.412);
+    --chart-severity-high: oklch(0.598 0.165 46.964);
+    --chart-severity-moderate: oklch(0.668 0.141 104.417);
+    --chart-severity-low: oklch(0.575 0.19 258.971);
 }
 
 @theme inline {
@@ -117,6 +142,15 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+    --color-severity-critical: var(--severity-critical);
+    --color-severity-high: var(--severity-high);
+    --color-severity-moderate: var(--severity-moderate);
+    --color-severity-low: var(--severity-low);
+    --color-severity-info: var(--severity-info);
+    --color-chart-severity-critical: var(--chart-severity-critical);
+    --color-chart-severity-high: var(--chart-severity-high);
+    --color-chart-severity-moderate: var(--chart-severity-moderate);
+    --color-chart-severity-low: var(--chart-severity-low);
     --font-sans: 'Inter Variable', sans-serif;
     --font-heading: 'JetBrains Mono Variable', monospace;
 }

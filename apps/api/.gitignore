@@ -1,0 +1,5 @@
+# Local development database (disposable; recreated by migrations on boot).
+data/
+*.db
+*.db-shm
+*.db-wal

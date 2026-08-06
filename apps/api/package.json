@@ -1,0 +1,46 @@
+{
+  "name": "@workspace/api",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "biome lint src",
+    "gen": "dcl gen",
+    "gen:check": "dcl gen --check"
+  },
+  "dependencies": {
+    "@declarativejs/cli": "workspace:*",
+    "@declarativejs/core": "workspace:*",
+    "@declarativejs/logger": "workspace:*",
+    "@declarativejs/module-observability": "workspace:*",
+    "@declarativejs/module-rate-limit": "workspace:*",
+    "@elysiajs/cors": "catalog:",
+    "@sinclair/typebox": "catalog:",
+    "@workspace/audit-engine": "workspace:*",
+    "@workspace/db": "workspace:*",
+    "better-auth": "catalog:",
+    "drizzle-orm": "catalog:",
+    "elysia": "catalog:",
+    "resend": "catalog:",
+    "semver": "catalog:"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@elysiajs/eden": "catalog:",
+    "@types/bun": "catalog:",
+    "@types/semver": "catalog:",
+    "typescript": "catalog:"
+  }
+}

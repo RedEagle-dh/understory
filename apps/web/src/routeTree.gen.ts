@@ -8,59 +8,457 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root"
-import { Route as IndexRouteImport } from "./routes/index"
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthedRouteImport } from './routes/_authed'
+import { Route as PublicRouteImport } from './routes/_public'
+import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
+import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
+import { Route as PublicLoginRouteImport } from './routes/_public/login'
+import { Route as PublicSignupRouteImport } from './routes/_public/signup'
+import { Route as AuthedProjectsProjectIdRouteImport } from './routes/_authed/projects/$projectId'
+import { Route as AuthedProjectsNewRouteImport } from './routes/_authed/projects/new'
+import { Route as AuthedSettingsIndexRouteImport } from './routes/_authed/settings/index'
+import { Route as AuthedSettingsNotificationsRouteImport } from './routes/_authed/settings/notifications'
+import { Route as AuthedSettingsProfileRouteImport } from './routes/_authed/settings/profile'
+import { Route as AuthedSettingsUsersRouteImport } from './routes/_authed/settings/users'
+import { Route as AuthedProjectsProjectIdIndexRouteImport } from './routes/_authed/projects/$projectId/index'
+import { Route as AuthedProjectsProjectIdPullRequestsRouteImport } from './routes/_authed/projects/$projectId/pull-requests'
+import { Route as AuthedProjectsProjectIdSettingsRouteImport } from './routes/_authed/projects/$projectId/settings'
+import { Route as AuthedProjectsProjectIdVulnerabilitiesRouteImport } from './routes/_authed/projects/$projectId/vulnerabilities'
+import { Route as AuthedProjectsProjectIdScansIndexRouteImport } from './routes/_authed/projects/$projectId/scans/index'
+import { Route as AuthedProjectsProjectIdScansScanIdRouteImport } from './routes/_authed/projects/$projectId/scans/$scanId'
 
-const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+const AuthedRoute = AuthedRouteImport.update({
+  id: '/_authed',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PublicRoute = PublicRouteImport.update({
+  id: '/_public',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthedIndexRoute = AuthedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const PublicLoginRoute = PublicLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicSignupRoute = PublicSignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => PublicRoute,
+} as any)
+const AuthedProjectsProjectIdRoute = AuthedProjectsProjectIdRouteImport.update({
+  id: '/projects/$projectId',
+  path: '/projects/$projectId',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedProjectsNewRoute = AuthedProjectsNewRouteImport.update({
+  id: '/projects/new',
+  path: '/projects/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSettingsIndexRoute = AuthedSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedSettingsRoute,
+} as any)
+const AuthedSettingsNotificationsRoute =
+  AuthedSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthedSettingsRoute,
+  } as any)
+const AuthedSettingsProfileRoute = AuthedSettingsProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthedSettingsRoute,
+} as any)
+const AuthedSettingsUsersRoute = AuthedSettingsUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthedSettingsRoute,
+} as any)
+const AuthedProjectsProjectIdIndexRoute =
+  AuthedProjectsProjectIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthedProjectsProjectIdRoute,
+  } as any)
+const AuthedProjectsProjectIdPullRequestsRoute =
+  AuthedProjectsProjectIdPullRequestsRouteImport.update({
+    id: '/pull-requests',
+    path: '/pull-requests',
+    getParentRoute: () => AuthedProjectsProjectIdRoute,
+  } as any)
+const AuthedProjectsProjectIdSettingsRoute =
+  AuthedProjectsProjectIdSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthedProjectsProjectIdRoute,
+  } as any)
+const AuthedProjectsProjectIdVulnerabilitiesRoute =
+  AuthedProjectsProjectIdVulnerabilitiesRouteImport.update({
+    id: '/vulnerabilities',
+    path: '/vulnerabilities',
+    getParentRoute: () => AuthedProjectsProjectIdRoute,
+  } as any)
+const AuthedProjectsProjectIdScansIndexRoute =
+  AuthedProjectsProjectIdScansIndexRouteImport.update({
+    id: '/scans/',
+    path: '/scans/',
+    getParentRoute: () => AuthedProjectsProjectIdRoute,
+  } as any)
+const AuthedProjectsProjectIdScansScanIdRoute =
+  AuthedProjectsProjectIdScansScanIdRouteImport.update({
+    id: '/scans/$scanId',
+    path: '/scans/$scanId',
+    getParentRoute: () => AuthedProjectsProjectIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute
+  '/': typeof AuthedIndexRoute
+  '/settings': typeof AuthedSettingsRouteWithChildren
+  '/login': typeof PublicLoginRoute
+  '/signup': typeof PublicSignupRoute
+  '/projects/$projectId': typeof AuthedProjectsProjectIdRouteWithChildren
+  '/projects/new': typeof AuthedProjectsNewRoute
+  '/settings/notifications': typeof AuthedSettingsNotificationsRoute
+  '/settings/profile': typeof AuthedSettingsProfileRoute
+  '/settings/users': typeof AuthedSettingsUsersRoute
+  '/settings/': typeof AuthedSettingsIndexRoute
+  '/projects/$projectId/pull-requests': typeof AuthedProjectsProjectIdPullRequestsRoute
+  '/projects/$projectId/settings': typeof AuthedProjectsProjectIdSettingsRoute
+  '/projects/$projectId/vulnerabilities': typeof AuthedProjectsProjectIdVulnerabilitiesRoute
+  '/projects/$projectId/': typeof AuthedProjectsProjectIdIndexRoute
+  '/projects/$projectId/scans/$scanId': typeof AuthedProjectsProjectIdScansScanIdRoute
+  '/projects/$projectId/scans/': typeof AuthedProjectsProjectIdScansIndexRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute
+  '/': typeof AuthedIndexRoute
+  '/login': typeof PublicLoginRoute
+  '/signup': typeof PublicSignupRoute
+  '/projects/new': typeof AuthedProjectsNewRoute
+  '/settings/notifications': typeof AuthedSettingsNotificationsRoute
+  '/settings/profile': typeof AuthedSettingsProfileRoute
+  '/settings/users': typeof AuthedSettingsUsersRoute
+  '/settings': typeof AuthedSettingsIndexRoute
+  '/projects/$projectId/pull-requests': typeof AuthedProjectsProjectIdPullRequestsRoute
+  '/projects/$projectId/settings': typeof AuthedProjectsProjectIdSettingsRoute
+  '/projects/$projectId/vulnerabilities': typeof AuthedProjectsProjectIdVulnerabilitiesRoute
+  '/projects/$projectId': typeof AuthedProjectsProjectIdIndexRoute
+  '/projects/$projectId/scans/$scanId': typeof AuthedProjectsProjectIdScansScanIdRoute
+  '/projects/$projectId/scans': typeof AuthedProjectsProjectIdScansIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  "/": typeof IndexRoute
+  '/_authed': typeof AuthedRouteWithChildren
+  '/_public': typeof PublicRouteWithChildren
+  '/_authed/settings': typeof AuthedSettingsRouteWithChildren
+  '/_public/login': typeof PublicLoginRoute
+  '/_public/signup': typeof PublicSignupRoute
+  '/_authed/': typeof AuthedIndexRoute
+  '/_authed/projects/$projectId': typeof AuthedProjectsProjectIdRouteWithChildren
+  '/_authed/projects/new': typeof AuthedProjectsNewRoute
+  '/_authed/settings/notifications': typeof AuthedSettingsNotificationsRoute
+  '/_authed/settings/profile': typeof AuthedSettingsProfileRoute
+  '/_authed/settings/users': typeof AuthedSettingsUsersRoute
+  '/_authed/settings/': typeof AuthedSettingsIndexRoute
+  '/_authed/projects/$projectId/pull-requests': typeof AuthedProjectsProjectIdPullRequestsRoute
+  '/_authed/projects/$projectId/settings': typeof AuthedProjectsProjectIdSettingsRoute
+  '/_authed/projects/$projectId/vulnerabilities': typeof AuthedProjectsProjectIdVulnerabilitiesRoute
+  '/_authed/projects/$projectId/': typeof AuthedProjectsProjectIdIndexRoute
+  '/_authed/projects/$projectId/scans/$scanId': typeof AuthedProjectsProjectIdScansScanIdRoute
+  '/_authed/projects/$projectId/scans/': typeof AuthedProjectsProjectIdScansIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/"
+  fullPaths:
+    | '/'
+    | '/settings'
+    | '/login'
+    | '/signup'
+    | '/projects/$projectId'
+    | '/projects/new'
+    | '/settings/notifications'
+    | '/settings/profile'
+    | '/settings/users'
+    | '/settings/'
+    | '/projects/$projectId/pull-requests'
+    | '/projects/$projectId/settings'
+    | '/projects/$projectId/vulnerabilities'
+    | '/projects/$projectId/'
+    | '/projects/$projectId/scans/$scanId'
+    | '/projects/$projectId/scans/'
   fileRoutesByTo: FileRoutesByTo
-  to: "/"
-  id: "__root__" | "/"
+  to:
+    | '/'
+    | '/login'
+    | '/signup'
+    | '/projects/new'
+    | '/settings/notifications'
+    | '/settings/profile'
+    | '/settings/users'
+    | '/settings'
+    | '/projects/$projectId/pull-requests'
+    | '/projects/$projectId/settings'
+    | '/projects/$projectId/vulnerabilities'
+    | '/projects/$projectId'
+    | '/projects/$projectId/scans/$scanId'
+    | '/projects/$projectId/scans'
+  id:
+    | '__root__'
+    | '/_authed'
+    | '/_public'
+    | '/_authed/settings'
+    | '/_public/login'
+    | '/_public/signup'
+    | '/_authed/'
+    | '/_authed/projects/$projectId'
+    | '/_authed/projects/new'
+    | '/_authed/settings/notifications'
+    | '/_authed/settings/profile'
+    | '/_authed/settings/users'
+    | '/_authed/settings/'
+    | '/_authed/projects/$projectId/pull-requests'
+    | '/_authed/projects/$projectId/settings'
+    | '/_authed/projects/$projectId/vulnerabilities'
+    | '/_authed/projects/$projectId/'
+    | '/_authed/projects/$projectId/scans/$scanId'
+    | '/_authed/projects/$projectId/scans/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AuthedRoute: typeof AuthedRouteWithChildren
+  PublicRoute: typeof PublicRouteWithChildren
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/": {
-      id: "/"
-      path: "/"
-      fullPath: "/"
-      preLoaderRoute: typeof IndexRouteImport
+    '/_authed': {
+      id: '/_authed'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthedRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_public': {
+      id: '/_public'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof PublicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authed/': {
+      id: '/_authed/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AuthedIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/settings': {
+      id: '/_authed/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthedSettingsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_public/login': {
+      id: '/_public/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof PublicLoginRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/signup': {
+      id: '/_public/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof PublicSignupRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_authed/projects/$projectId': {
+      id: '/_authed/projects/$projectId'
+      path: '/projects/$projectId'
+      fullPath: '/projects/$projectId'
+      preLoaderRoute: typeof AuthedProjectsProjectIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/projects/new': {
+      id: '/_authed/projects/new'
+      path: '/projects/new'
+      fullPath: '/projects/new'
+      preLoaderRoute: typeof AuthedProjectsNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/settings/': {
+      id: '/_authed/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AuthedSettingsIndexRouteImport
+      parentRoute: typeof AuthedSettingsRoute
+    }
+    '/_authed/settings/notifications': {
+      id: '/_authed/settings/notifications'
+      path: '/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof AuthedSettingsNotificationsRouteImport
+      parentRoute: typeof AuthedSettingsRoute
+    }
+    '/_authed/settings/profile': {
+      id: '/_authed/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof AuthedSettingsProfileRouteImport
+      parentRoute: typeof AuthedSettingsRoute
+    }
+    '/_authed/settings/users': {
+      id: '/_authed/settings/users'
+      path: '/users'
+      fullPath: '/settings/users'
+      preLoaderRoute: typeof AuthedSettingsUsersRouteImport
+      parentRoute: typeof AuthedSettingsRoute
+    }
+    '/_authed/projects/$projectId/': {
+      id: '/_authed/projects/$projectId/'
+      path: '/'
+      fullPath: '/projects/$projectId/'
+      preLoaderRoute: typeof AuthedProjectsProjectIdIndexRouteImport
+      parentRoute: typeof AuthedProjectsProjectIdRoute
+    }
+    '/_authed/projects/$projectId/pull-requests': {
+      id: '/_authed/projects/$projectId/pull-requests'
+      path: '/pull-requests'
+      fullPath: '/projects/$projectId/pull-requests'
+      preLoaderRoute: typeof AuthedProjectsProjectIdPullRequestsRouteImport
+      parentRoute: typeof AuthedProjectsProjectIdRoute
+    }
+    '/_authed/projects/$projectId/settings': {
+      id: '/_authed/projects/$projectId/settings'
+      path: '/settings'
+      fullPath: '/projects/$projectId/settings'
+      preLoaderRoute: typeof AuthedProjectsProjectIdSettingsRouteImport
+      parentRoute: typeof AuthedProjectsProjectIdRoute
+    }
+    '/_authed/projects/$projectId/vulnerabilities': {
+      id: '/_authed/projects/$projectId/vulnerabilities'
+      path: '/vulnerabilities'
+      fullPath: '/projects/$projectId/vulnerabilities'
+      preLoaderRoute: typeof AuthedProjectsProjectIdVulnerabilitiesRouteImport
+      parentRoute: typeof AuthedProjectsProjectIdRoute
+    }
+    '/_authed/projects/$projectId/scans/': {
+      id: '/_authed/projects/$projectId/scans/'
+      path: '/scans'
+      fullPath: '/projects/$projectId/scans/'
+      preLoaderRoute: typeof AuthedProjectsProjectIdScansIndexRouteImport
+      parentRoute: typeof AuthedProjectsProjectIdRoute
+    }
+    '/_authed/projects/$projectId/scans/$scanId': {
+      id: '/_authed/projects/$projectId/scans/$scanId'
+      path: '/scans/$scanId'
+      fullPath: '/projects/$projectId/scans/$scanId'
+      preLoaderRoute: typeof AuthedProjectsProjectIdScansScanIdRouteImport
+      parentRoute: typeof AuthedProjectsProjectIdRoute
     }
   }
 }
 
+interface AuthedSettingsRouteChildren {
+  AuthedSettingsNotificationsRoute: typeof AuthedSettingsNotificationsRoute
+  AuthedSettingsProfileRoute: typeof AuthedSettingsProfileRoute
+  AuthedSettingsUsersRoute: typeof AuthedSettingsUsersRoute
+  AuthedSettingsIndexRoute: typeof AuthedSettingsIndexRoute
+}
+
+const AuthedSettingsRouteChildren: AuthedSettingsRouteChildren = {
+  AuthedSettingsNotificationsRoute: AuthedSettingsNotificationsRoute,
+  AuthedSettingsProfileRoute: AuthedSettingsProfileRoute,
+  AuthedSettingsUsersRoute: AuthedSettingsUsersRoute,
+  AuthedSettingsIndexRoute: AuthedSettingsIndexRoute,
+}
+
+const AuthedSettingsRouteWithChildren = AuthedSettingsRoute._addFileChildren(
+  AuthedSettingsRouteChildren,
+)
+
+interface AuthedProjectsProjectIdRouteChildren {
+  AuthedProjectsProjectIdPullRequestsRoute: typeof AuthedProjectsProjectIdPullRequestsRoute
+  AuthedProjectsProjectIdSettingsRoute: typeof AuthedProjectsProjectIdSettingsRoute
+  AuthedProjectsProjectIdVulnerabilitiesRoute: typeof AuthedProjectsProjectIdVulnerabilitiesRoute
+  AuthedProjectsProjectIdIndexRoute: typeof AuthedProjectsProjectIdIndexRoute
+  AuthedProjectsProjectIdScansScanIdRoute: typeof AuthedProjectsProjectIdScansScanIdRoute
+  AuthedProjectsProjectIdScansIndexRoute: typeof AuthedProjectsProjectIdScansIndexRoute
+}
+
+const AuthedProjectsProjectIdRouteChildren: AuthedProjectsProjectIdRouteChildren =
+  {
+    AuthedProjectsProjectIdPullRequestsRoute:
+      AuthedProjectsProjectIdPullRequestsRoute,
+    AuthedProjectsProjectIdSettingsRoute: AuthedProjectsProjectIdSettingsRoute,
+    AuthedProjectsProjectIdVulnerabilitiesRoute:
+      AuthedProjectsProjectIdVulnerabilitiesRoute,
+    AuthedProjectsProjectIdIndexRoute: AuthedProjectsProjectIdIndexRoute,
+    AuthedProjectsProjectIdScansScanIdRoute:
+      AuthedProjectsProjectIdScansScanIdRoute,
+    AuthedProjectsProjectIdScansIndexRoute:
+      AuthedProjectsProjectIdScansIndexRoute,
+  }
+
+const AuthedProjectsProjectIdRouteWithChildren =
+  AuthedProjectsProjectIdRoute._addFileChildren(
+    AuthedProjectsProjectIdRouteChildren,
+  )
+
+interface AuthedRouteChildren {
+  AuthedSettingsRoute: typeof AuthedSettingsRouteWithChildren
+  AuthedIndexRoute: typeof AuthedIndexRoute
+  AuthedProjectsProjectIdRoute: typeof AuthedProjectsProjectIdRouteWithChildren
+  AuthedProjectsNewRoute: typeof AuthedProjectsNewRoute
+}
+
+const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedSettingsRoute: AuthedSettingsRouteWithChildren,
+  AuthedIndexRoute: AuthedIndexRoute,
+  AuthedProjectsProjectIdRoute: AuthedProjectsProjectIdRouteWithChildren,
+  AuthedProjectsNewRoute: AuthedProjectsNewRoute,
+}
+
+const AuthedRouteWithChildren =
+  AuthedRoute._addFileChildren(AuthedRouteChildren)
+
+interface PublicRouteChildren {
+  PublicLoginRoute: typeof PublicLoginRoute
+  PublicSignupRoute: typeof PublicSignupRoute
+}
+
+const PublicRouteChildren: PublicRouteChildren = {
+  PublicLoginRoute: PublicLoginRoute,
+  PublicSignupRoute: PublicSignupRoute,
+}
+
+const PublicRouteWithChildren =
+  PublicRoute._addFileChildren(PublicRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AuthedRoute: AuthedRouteWithChildren,
+  PublicRoute: PublicRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from "./router.tsx"
-import type { createStart } from "@tanstack/react-start"
-declare module "@tanstack/react-start" {
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>

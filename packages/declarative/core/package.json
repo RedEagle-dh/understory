@@ -1,0 +1,38 @@
+{
+	"name": "@declarativejs/core",
+	"version": "0.0.1",
+	"description": "Declarative entrypoint factories (route/consumer/job/ws/task), pipeline mechanics, ports, transport adapters, and the app/config layer. Framework-shaped: must never import domain code.",
+	"type": "module",
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"exports": {
+		".": {
+			"default": "./src/index.ts",
+			"types": "./src/index.ts"
+		},
+		"./app": {
+			"default": "./src/app/index.ts",
+			"types": "./src/app/index.ts"
+		},
+		"./config": {
+			"default": "./src/config/index.ts",
+			"types": "./src/config/index.ts"
+		},
+		"./testing": {
+			"default": "./src/testing.ts",
+			"types": "./src/testing.ts"
+		}
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@sinclair/typebox": "catalog:",
+		"elysia": "catalog:"
+	},
+	"devDependencies": {
+		"@types/bun": "catalog:",
+		"typescript": "catalog:"
+	}
+}

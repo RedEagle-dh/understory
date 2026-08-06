@@ -1,0 +1,46 @@
+{
+	"name": "web",
+	"version": "0.0.1",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"dev": "vite dev --port 3000",
+		"build": "vite build",
+		"preview": "vite preview",
+		"lint": "eslint",
+		"format": "prettier --write \"**/*.{ts,tsx}\"",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@elysiajs/eden": "catalog:",
+		"@tailwindcss/vite": "catalog:frontend",
+		"@tanstack/react-devtools": "catalog:frontend",
+		"@tanstack/react-form": "catalog:frontend",
+		"@tanstack/react-query": "catalog:frontend",
+		"@tanstack/react-query-devtools": "catalog:frontend",
+		"@tanstack/react-router": "catalog:frontend",
+		"@tanstack/react-table": "catalog:frontend",
+		"@tanstack/react-router-devtools": "catalog:frontend",
+		"@tanstack/react-start": "catalog:frontend",
+		"@tanstack/router-plugin": "catalog:frontend",
+		"@workspace/api": "workspace:*",
+		"@workspace/ui": "workspace:*",
+		"better-auth": "catalog:",
+		"lucide-react": "catalog:frontend",
+		"zod": "catalog:frontend",
+		"react": "catalog:frontend",
+		"react-dom": "catalog:frontend",
+		"tailwindcss": "catalog:frontend"
+	},
+	"devDependencies": {
+		"@tanstack/devtools-vite": "catalog:frontend",
+		"@tanstack/eslint-config": "catalog:frontend",
+		"@types/node": "catalog:",
+		"@types/react": "catalog:frontend",
+		"@types/react-dom": "catalog:frontend",
+		"@vitejs/plugin-react": "catalog:frontend",
+		"eslint": "catalog:frontend",
+		"typescript": "catalog:",
+		"vite": "catalog:frontend"
+	}
+}

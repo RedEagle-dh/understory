@@ -1,0 +1,26 @@
+services:
+  app:
+    image: ghcr.io/OWNER/understory:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - dep-audit-data:/data
+    environment:
+      APP_URL: ${APP_URL:-http://localhost:3001}
+      TRUSTED_ORIGINS: ${APP_URL:-http://localhost:3001}
+      DATABASE_PATH: /data/app.db
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?generate with: openssl rand -base64 32}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?generate with: openssl rand -base64 32}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      SCAN_CONCURRENCY: ${SCAN_CONCURRENCY:-3}
+      ENABLE_LOCKFILE_REGEN: ${ENABLE_LOCKFILE_REGEN:-true}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      HOST: 0.0.0.0
+
+volumes:
+  dep-audit-data:

@@ -1,0 +1,35 @@
+{
+	"name": "v1-fixture",
+	"version": "1.0.0",
+	"lockfileVersion": 1,
+	"requires": true,
+	"dependencies": {
+		"fsevents": {
+			"version": "2.3.3",
+			"resolved": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz",
+			"optional": true
+		},
+		"lodash": {
+			"version": "4.17.20",
+			"resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.20.tgz"
+		},
+		"minimist": {
+			"version": "1.2.5",
+			"resolved": "https://registry.npmjs.org/minimist/-/minimist-1.2.5.tgz",
+			"dev": true
+		},
+		"mkdirp": {
+			"version": "0.5.6",
+			"resolved": "https://registry.npmjs.org/mkdirp/-/mkdirp-0.5.6.tgz",
+			"requires": {
+				"minimist": "^1.2.6"
+			},
+			"dependencies": {
+				"minimist": {
+					"version": "1.2.8",
+					"resolved": "https://registry.npmjs.org/minimist/-/minimist-1.2.8.tgz"
+				}
+			}
+		}
+	}
+}

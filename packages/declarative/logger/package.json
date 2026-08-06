@@ -1,0 +1,38 @@
+{
+	"name": "@declarativejs/logger",
+	"version": "0.0.1",
+	"description": "Structured pino logging + OpenTelemetry tracer init (Bun-safe: http exporter default, SafeSpanExporter). Zero domain imports.",
+	"type": "module",
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"exports": {
+		".": {
+			"default": "./src/index.ts",
+			"types": "./src/index.ts"
+		},
+		"./client": {
+			"default": "./src/client.ts",
+			"types": "./src/client.ts"
+		}
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@opentelemetry/api": "1.9.0",
+		"@opentelemetry/core": "1.30.0",
+		"@opentelemetry/exporter-trace-otlp-grpc": "0.57.0",
+		"@opentelemetry/exporter-trace-otlp-http": "0.57.0",
+		"@opentelemetry/resources": "1.30.0",
+		"@opentelemetry/sdk-node": "0.57.0",
+		"@opentelemetry/sdk-trace-node": "1.30.0",
+		"@opentelemetry/semantic-conventions": "1.28.0",
+		"pino": "catalog:",
+		"pino-pretty": "catalog:"
+	},
+	"devDependencies": {
+		"@types/bun": "catalog:",
+		"@types/node": "catalog:",
+		"typescript": "catalog:"
+	}
+}

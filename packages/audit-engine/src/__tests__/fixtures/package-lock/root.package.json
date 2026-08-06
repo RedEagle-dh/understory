@@ -1,0 +1,17 @@
+{
+	"name": "fixture-root",
+	"version": "1.0.0",
+	"private": true,
+	"packageManager": "npm@10.8.0",
+	"workspaces": ["apps/*"],
+	"dependencies": {
+		"@scope/util": "^2.0.0",
+		"lodash": "^4.17.15"
+	},
+	"devDependencies": {
+		"typescript": "^5.4.0"
+	},
+	"optionalDependencies": {
+		"fsevents": "^2.3.0"
+	}
+}

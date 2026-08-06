@@ -1,0 +1,22 @@
+{
+	"name": "@declarativejs/cli",
+	"version": "0.0.1",
+	"description": "The declarative CLI: `dcl gen` generates src/generated/manifest.ts from framework.config.ts.",
+	"type": "module",
+	"main": "./src/index.ts",
+	"bin": {
+		"dcl": "./src/index.ts",
+		"create-declarative": "./src/create.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@declarativejs/core": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/bun": "catalog:",
+		"@types/node": "catalog:",
+		"typescript": "catalog:"
+	}
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@workspace/audit-engine",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "biome lint src"
+  },
+  "dependencies": {
+    "jsonc-parser": "catalog:",
+    "picomatch": "catalog:",
+    "semver": "catalog:"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@types/bun": "catalog:",
+    "@types/picomatch": "catalog:",
+    "@types/semver": "catalog:",
+    "typescript": "catalog:"
+  }
+}

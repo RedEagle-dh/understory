@@ -1,0 +1,24 @@
+{
+	"name": "@declarativejs/module-rate-limit",
+	"version": "0.0.1",
+	"description": "Optional rate-limiter adapters implementing core's RateLimiterPort. Ships an in-memory fixed-window limiter (a Redis adapter follows the same interface). Feeds core's createRateLimitStage.",
+	"type": "module",
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"exports": {
+		".": {
+			"default": "./src/index.ts",
+			"types": "./src/index.ts"
+		}
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@declarativejs/core": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/bun": "catalog:",
+		"typescript": "catalog:"
+	}
+}

@@ -1,0 +1,117 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.8/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "includes": [
+      "apps/api/**",
+      "apps/web/**",
+      "packages/db/**",
+      "packages/audit-engine/**",
+      "packages/declarative/**",
+      "packages/ui/**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/generated",
+      "!**/*.gen.ts",
+      "!**/*.tsbuildinfo",
+      "!**/migrations",
+      "!**/public",
+      "!**/*.css"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "tab",
+    "indentWidth": 4,
+    "bracketSpacing": true,
+    "lineEnding": "lf"
+  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "style": {
+        "useImportType": { "level": "off" }
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteProperties": "asNeeded",
+      "trailingCommas": "es5",
+      "semicolons": "always",
+      "arrowParentheses": "always",
+      "bracketSameLine": false,
+      "quoteStyle": "single",
+      "bracketSpacing": true
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/web/**", "packages/ui/**"],
+      "formatter": { "enabled": false },
+      "assist": { "enabled": false },
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noArrayIndexKey": { "level": "off" }
+          },
+          "style": {
+            "noNonNullAssertion": { "level": "off" }
+          },
+          "a11y": {
+            "useSemanticElements": { "level": "off" }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ui/src/components/**", "packages/ui/src/hooks/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noLabelWithoutControl": { "level": "off" },
+            "useKeyWithClickEvents": { "level": "off" },
+            "useFocusableInteractive": { "level": "off" }
+          },
+          "suspicious": {
+            "noDocumentCookie": { "level": "off" }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/declarative/core/src/eden.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noBannedTypes": { "level": "off" }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/declarative/modules/**", "apps/api/src/modules/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "elysia": "Elysia is transport-only and lives in @declarativejs/core. Declare entrypoints via the framework factories (route/consumer/job/ws/task); never import elysia in a module."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

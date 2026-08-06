@@ -1,0 +1,43 @@
+{
+  "name": "@workspace/db",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./schema": {
+      "default": "./src/schema/index.ts",
+      "types": "./src/schema/index.ts"
+    },
+    "./crypto": {
+      "default": "./src/crypto.ts",
+      "types": "./src/crypto.ts"
+    },
+    "./migrate": {
+      "default": "./src/migrate.ts",
+      "types": "./src/migrate.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "biome lint src",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun run src/migrate.ts",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "drizzle-orm": "catalog:"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@types/bun": "catalog:",
+    "drizzle-kit": "catalog:",
+    "typescript": "catalog:"
+  }
+}

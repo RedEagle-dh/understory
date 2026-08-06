@@ -1,0 +1,28 @@
+{
+	"lodash": [
+		{
+			"id": 1673,
+			"url": "https://github.com/advisories/GHSA-35jh-r3h4-6jhm",
+			"title": "Command Injection in lodash",
+			"severity": "high",
+			"vulnerable_versions": "<4.17.21",
+			"cwe": ["CWE-77", "CWE-94", "CVE-2021-23337"],
+			"cvss": {
+				"score": 7.2,
+				"vectorString": "CVSS:3.1/AV:N/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:H"
+			}
+		},
+		{
+			"id": 1065,
+			"url": "https://github.com/advisories/GHSA-p6mc-m468-83gg",
+			"title": "Prototype Pollution in lodash",
+			"severity": "high",
+			"vulnerable_versions": ">=3.7.0 <4.17.19",
+			"cwe": ["CWE-1321"],
+			"cvss": {
+				"score": 7.4,
+				"vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:L"
+			}
+		}
+	]
+}

@@ -1,0 +1,42 @@
+{
+	"name": "@workspace/ui",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"lint": "eslint",
+		"format": "prettier --write \"**/*.{ts,tsx}\"",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@base-ui/react": "catalog:frontend",
+		"@fontsource-variable/inter": "catalog:frontend",
+		"@fontsource-variable/jetbrains-mono": "catalog:frontend",
+		"class-variance-authority": "catalog:frontend",
+		"clsx": "catalog:frontend",
+		"lucide-react": "catalog:frontend",
+		"react": "catalog:frontend",
+		"react-dom": "catalog:frontend",
+		"shadcn": "catalog:frontend",
+		"tailwind-merge": "catalog:frontend",
+		"tw-animate-css": "catalog:frontend",
+		"zod": "catalog:frontend"
+	},
+	"devDependencies": {
+		"@tailwindcss/vite": "catalog:frontend",
+		"@tanstack/eslint-config": "catalog:frontend",
+		"@turbo/gen": "catalog:frontend",
+		"@types/node": "catalog:",
+		"@types/react": "catalog:frontend",
+		"@types/react-dom": "catalog:frontend",
+		"eslint": "catalog:frontend",
+		"tailwindcss": "catalog:frontend",
+		"typescript": "catalog:"
+	},
+	"exports": {
+		"./globals.css": "./src/styles/globals.css",
+		"./lib/*": "./src/lib/*.ts",
+		"./components/*": "./src/components/*.tsx",
+		"./hooks/*": "./src/hooks/*.ts"
+	}
+}

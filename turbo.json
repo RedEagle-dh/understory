@@ -5,7 +5,7 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".output/**"]
+      "outputs": [".output/**", "dist/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -15,6 +15,16 @@
     },
     "typecheck": {
       "dependsOn": ["^typecheck"]
+    },
+    "test": {},
+    "gen": {
+      "cache": false
+    },
+    "db:generate": {
+      "cache": false
+    },
+    "db:migrate": {
+      "cache": false
     },
     "dev": {
       "cache": false,

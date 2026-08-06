@@ -1,0 +1,95 @@
+{
+	"name": "fixture-root",
+	"version": "1.0.0",
+	"lockfileVersion": 3,
+	"requires": true,
+	"packages": {
+		"": {
+			"name": "fixture-root",
+			"version": "1.0.0",
+			"workspaces": ["apps/*"],
+			"dependencies": {
+				"@scope/util": "^2.0.0",
+				"lodash": "^4.17.15"
+			},
+			"devDependencies": {
+				"typescript": "^5.4.0"
+			},
+			"optionalDependencies": {
+				"fsevents": "^2.3.0"
+			}
+		},
+		"apps/web": {
+			"name": "web",
+			"version": "0.0.1",
+			"dependencies": {
+				"left-pad": "^1.3.0",
+				"react": "^18.2.0"
+			},
+			"peerDependencies": {
+				"react-dom": "^18.0.0"
+			},
+			"peerDependenciesMeta": {
+				"react-dom": { "optional": true }
+			}
+		},
+		"node_modules/@scope/util": {
+			"version": "2.1.0",
+			"resolved": "https://registry.npmjs.org/@scope/util/-/util-2.1.0.tgz",
+			"integrity": "sha512-fixture",
+			"dependencies": {
+				"lodash": "^3.10.0"
+			}
+		},
+		"node_modules/@scope/util/node_modules/lodash": {
+			"version": "3.10.1",
+			"resolved": "https://registry.npmjs.org/lodash/-/lodash-3.10.1.tgz",
+			"integrity": "sha512-fixture"
+		},
+		"node_modules/fsevents": {
+			"version": "2.3.3",
+			"resolved": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz",
+			"optional": true,
+			"os": ["darwin"]
+		},
+		"node_modules/left-pad": {
+			"version": "1.3.0",
+			"resolved": "https://registry.npmjs.org/left-pad/-/left-pad-1.3.0.tgz",
+			"deprecated": "use String.prototype.padStart()"
+		},
+		"node_modules/lodash": {
+			"version": "4.17.20",
+			"resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.20.tgz"
+		},
+		"node_modules/loose-envify": {
+			"version": "1.4.0",
+			"resolved": "https://registry.npmjs.org/loose-envify/-/loose-envify-1.4.0.tgz"
+		},
+		"node_modules/react": {
+			"version": "18.3.1",
+			"resolved": "https://registry.npmjs.org/react/-/react-18.3.1.tgz",
+			"dependencies": {
+				"loose-envify": "^1.1.0"
+			},
+			"engines": { "node": ">=0.10.0" }
+		},
+		"node_modules/react-dom": {
+			"version": "18.3.1",
+			"resolved": "https://registry.npmjs.org/react-dom/-/react-dom-18.3.1.tgz",
+			"peer": true,
+			"optional": true,
+			"peerDependencies": {
+				"react": "^18.3.1"
+			}
+		},
+		"node_modules/typescript": {
+			"version": "5.4.5",
+			"resolved": "https://registry.npmjs.org/typescript/-/typescript-5.4.5.tgz",
+			"dev": true
+		},
+		"node_modules/web": {
+			"resolved": "apps/web",
+			"link": true
+		}
+	}
+}

@@ -1,5 +1,5 @@
-import { Logo } from "@/components/common/logo"
 import { cn } from "@workspace/ui/lib/utils"
+import { Logo } from "@/components/common/logo"
 
 /**
  * The product mark: mono lowercase wordmark with a terminal cursor block.
@@ -10,7 +10,7 @@ export function Wordmark({ className }: { className?: string }) {
   return (
     <span className={cn("flex items-center gap-2", className)}>
       <Logo />
-      <span className="font-heading text-sm font-semibold tracking-tight">
+      <span className="font-heading font-semibold text-sm tracking-tight">
         understory
         <span
           aria-hidden

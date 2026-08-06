@@ -1,49 +1,34 @@
-<p align="center">
-  <img src="apps/web/public/logo.svg" alt="understory" width="96" height="96" />
-</p>
+<div align="center">
+  <img src="apps/web/public/logo.svg" alt="understory logo" width="96" height="96" />
 
 # understory
 
-Self-hosted, open-source npm dependency auditing. Point it at your GitHub
-repositories and it scans them every hour: every dependency (prod, dev, peer,
-optional — direct and transitive, straight from the lockfile), checked against
-the npm advisory database **and** OSV.dev, plus outdated-version detection
-against the npm registry. It notifies you through email (Resend) or Discord,
-and can open version-bump pull requests — manually from the UI, or
-automatically when a fixable vulnerability appears.
+**Self-hosted npm dependency auditing — see what lives under your dependency tree.**
+
+[![Bun](https://img.shields.io/badge/bun-%E2%89%A51.3-black?logo=bun)](https://bun.sh)
+[![TypeScript](https://img.shields.io/badge/typescript-7-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+[Features](#features) · [Quickstart](#quickstart) · [Configuration](#configuration) · [Automatic pull requests](#automatic-pull-requests) · [Development](#development)
+
+</div>
+
+Point understory at your GitHub repositories and it scans them every hour: **every** dependency — production, dev, peer, optional, direct *and* transitive, straight from the lockfile — checked against the npm advisory database **and** OSV.dev, with outdated-version detection against the npm registry. It notifies you through Discord or email, and opens version-bump pull requests: manually from the UI, automatically when a fixable vulnerability appears, or automatically for routine updates once a release has survived a configurable supply-chain cooldown.
+
+Everything runs in a single container with a single SQLite file. No SaaS, no agents in your CI, no code execution from scanned repositories.
 
 ## Features
 
-- **Full dependency extraction** from `package-lock.json` (v1/v2/v3) and
-  `bun.lock`, including workspaces, peer dependencies, depth, and declared
-  ranges (`catalog:` ranges resolved). yarn/pnpm detection with a warning
-  (parsers planned).
-- **Two advisory sources, one truth** — npm bulk advisories + OSV.dev,
-  normalized and merged by canonical ID (GHSA > CVE > OSV) with alias
-  cross-referencing. Fix versions are computed across *all* ranges affecting a
-  package.
-- **Hourly scans without the thundering herd** — a per-minute dispatcher with
-  per-project offsets, concurrency limits, ETag caching (unchanged repos cost
-  almost no GitHub quota), and exponential backoff for failing projects.
-- **Scan diffing** — every scan knows exactly which findings are new, which
-  resolved, and which majors just appeared. That diff drives notifications.
-- **Notifications** — Resend (email) and Discord (webhook) channels, global or
-  per-project rules, severity thresholds, dedupe (a finding never notifies
-  twice), retries with backoff, and a daily outdated digest.
-- **Pull requests** — select dependencies in the UI, preview the exact
-  `package.json` edits (operator-preserving range rewrites), and open a PR via
-  the GitHub Git Data API (one commit, lockfile regenerated when possible).
-  Auto-PR opens security bumps on its own, gated by severity and bump-kind
-  thresholds. Deterministic branch names make retries converge instead of
-  littering your repo.
-- **Local users + RBAC** — the first account to sign up becomes the admin,
-  then registration closes. Admins create users; roles are `viewer`,
-  `maintainer`, `admin`.
-- **Self-contained** — one container, one SQLite file, no external services
-  required. Secrets (GitHub tokens, channel configs) are AES-256-GCM sealed at
-  rest.
+- **Full dependency extraction** — parses `package-lock.json` (v1/v2/v3) and `bun.lock` including workspaces, `catalog:` ranges, peer dependencies, and depth. Snapshots are content-addressed by lockfile hash, so unchanged repositories cost almost nothing to rescan.
+- **Two advisory sources, one truth** — npm bulk advisories and OSV.dev, normalized and merged by canonical ID (GHSA → CVE → OSV) with alias cross-referencing. Fix versions are computed across *all* ranges affecting a package, not taken on faith.
+- **Scan diffing** — every scan knows which findings are new, which resolved, and which majors just appeared; one indexed query, no snapshot comparison. Diffs drive notifications, so you hear about changes — not about the same finding every hour.
+- **Considerate scheduling** — a per-minute dispatcher with per-project offsets (no thundering herd), bounded concurrency, ETag caching against GitHub and the registry, and exponential backoff for failing projects.
+- **Notifications** — Discord webhooks and email (via [Resend](https://resend.com)), with global or per-project rules, severity thresholds, delivery dedupe, and retries with backoff. A daily digest covers slow-moving outdated counts.
+- **Pull requests that merge green** — PRs are created through the GitHub Git Data API as a single commit, with operator-preserving range rewrites (`^4.17.15 → ^4.17.21`), root-catalog edits for `catalog:` monorepos, and lockfile regeneration (`--ignore-scripts`, sandboxed) so `npm ci` passes on arrival. Deterministic branch names make retries converge instead of littering your repo.
+- **Local users with RBAC** — `viewer`, `maintainer`, and `admin` roles, enforced server-side on every route. No external identity provider required.
+- **Secrets sealed at rest** — GitHub tokens and channel credentials are AES-256-GCM encrypted with per-row binding; key rotation supported.
 
-## Quick start (Docker)
+## Quickstart
 
 ```sh
 git clone https://github.com/OWNER/understory && cd understory/docker
@@ -52,32 +37,48 @@ export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 docker compose up -d
 ```
 
-Open http://localhost:3001, create the admin account (first signup only), add
-a repository, and the first scan starts immediately.
+Open http://localhost:3001 and create your account.
 
-Keep `APP_ENCRYPTION_KEY` safe — the database's sealed secrets are worthless
-without it. Back up the SQLite file WAL-safely with
-`sqlite3 /data/app.db ".backup /data/backup.db"`.
+> [!NOTE]
+> The **first account to sign up becomes the administrator**, after which public registration closes. Admins create further users from Settings → Users.
+
+Add a repository (owner + repo; a token is only needed for private repos or to avoid anonymous rate limits) and the first scan starts immediately. Hourly scans, notifications, and automatic PRs take it from there.
+
+> [!IMPORTANT]
+> Keep `APP_ENCRYPTION_KEY` safe. Sealed secrets in the database are unrecoverable without it. Back up the SQLite file WAL-safely with `sqlite3 /data/app.db ".backup /data/backup.db"`.
 
 ## Configuration
 
-Everything is environment variables — see [.env.example](.env.example) for
-the full annotated list. The essentials:
+Everything is configured through environment variables — see [.env.example](.env.example) for the full annotated list.
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `APP_ENCRYPTION_KEY` | yes | 32-byte base64 key sealing tokens/secrets at rest (`openssl rand -base64 32`) |
+| `APP_ENCRYPTION_KEY` | yes | 32-byte base64 key sealing tokens and channel secrets at rest |
 | `BETTER_AUTH_SECRET` | yes | Session signing secret |
-| `APP_URL` | yes (prod) | Public origin — cookies, links in notifications |
-| `GITHUB_TOKEN` | no | Fallback token when a project has none. A fine-grained PAT with `contents: read/write` + `pull requests: read/write` on selected repos is recommended; per-project tokens can be set in the UI |
-| `SCAN_CONCURRENCY` | no | Parallel scans (default 3) |
-| `ENABLE_LOCKFILE_REGEN` | no | Regenerate lockfiles in PRs (default true; needs npm in the image — included) |
-| `DISABLE_OSV` | no | Skip the OSV.dev source |
-| `METRICS_ENABLED` / `METRICS_TOKEN` | no | Prometheus `/metrics` (optionally bearer-gated) |
+| `APP_URL` | in production | Public origin — cookies and links in notifications |
+| `GITHUB_TOKEN` | no | Fallback token when a project has none of its own |
+| `SCAN_CONCURRENCY` | no | Parallel scans (default `3`) |
+| `ENABLE_LOCKFILE_REGEN` | no | Regenerate lockfiles in PRs (default `true`) |
+| `DISABLE_OSV` | no | Skip the OSV.dev advisory source |
+| `METRICS_ENABLED` / `METRICS_TOKEN` | no | Prometheus `/metrics`, optionally bearer-gated |
 
-**Notifications:** Discord needs only a webhook URL. Email needs a
-[Resend](https://resend.com) API key and a verified sending domain — without
-one, Discord-only works fine.
+> [!TIP]
+> Use a **fine-grained personal access token** with `contents: read/write` and `pull requests: read/write` scoped to the repositories you track. Tokens can be set globally or per project in the UI, and are only ever stored sealed.
+
+**Notifications:** Discord needs only a webhook URL. Email needs a Resend API key and a verified sending domain — Discord-only works fine without one.
+
+## Automatic pull requests
+
+understory opens PRs on two independent tracks, both configured per project:
+
+**Security fixes** — when a scan finds a new vulnerability with an available fix, a PR is opened immediately, gated by a minimum severity and a maximum allowed version jump (never auto-ship a breaking major unless you say so). Fixes are deliberately *not* delayed by the cooldown below.
+
+**Version bumps** — outdated direct dependencies are bumped to `latest` in one batched PR, bounded by:
+
+- **Update kind** — patch only, up to minor, or up to major.
+- **Release-age cooldown** — a new version only qualifies after it has been public on the registry for a configurable time (days + hours, default 3 days). This is supply-chain protection: compromised releases are typically discovered and yanked within days, and understory simply refuses to ship a release younger than your threshold. Unknown publish dates fail closed.
+
+Only one bump PR is kept open at a time; a fresh one opens after the previous merges or closes.
 
 ## Development
 
@@ -85,41 +86,35 @@ Requirements: [Bun](https://bun.sh) ≥ 1.3.
 
 ```sh
 bun install
-cp .env.example apps/api/.env       # fill the two required keys
-bun run --filter @workspace/api dev # API on :3001
-bun run --filter web dev            # web on :3000 (proxies /api to :3001)
+cp .env.example apps/api/.env        # fill the two required keys
+bun run --filter @workspace/api dev  # API on :3001
+bun run --filter web dev             # web on :3000, proxies /api to :3001
 ```
 
-`bun run typecheck` / `bun run lint` / `bun test` / `bun run build` at the
-root run everything through turbo. TypeScript 7 (native compiler) everywhere;
-lint is biome; web formatting is prettier.
+`bun run typecheck` · `bun run lint` · `bun run format` · `bun test` · `bun run build` — all run through turbo at the root. TypeScript 7 (native compiler) everywhere; biome for linting **and** formatting (including Tailwind class sorting).
 
-## Architecture
-
-Monorepo (bun workspaces + turbo):
+### Architecture
 
 | Path | What it is |
 |---|---|
-| `apps/api` | Elysia + Bun API built on the vendored **declarative** framework — every route/job is a typed contract (validation, tracing, metrics, error mapping, access log come free), RBAC is a compile-enforced per-route `policy` declaration |
-| `apps/web` | TanStack Start SPA (React 19, Tailwind v4, shadcn/ui) — fully typed against the API via Eden treaty, no hand-written client |
-| `packages/audit-engine` | Pure domain logic: lockfile parsers, registry/OSV clients, advisory normalization + merge, outdated/fix/peer computation, bump planning. Zero I/O in tests |
-| `packages/db` | Drizzle + bun:sqlite schema, migrations, sealed-secret crypto |
+| `apps/api` | Elysia + Bun API on the vendored **declarative** framework — every route and job is a typed contract; RBAC is a compile-enforced per-route `policy` declaration |
+| `apps/web` | TanStack Start SPA (React 19, Tailwind v4, shadcn/ui), end-to-end typed against the API via Eden treaty |
+| `packages/audit-engine` | Pure domain logic: lockfile parsers, registry/OSV clients, advisory normalization and merge, outdated/fix/peer computation, bump planning — zero I/O in tests |
+| `packages/db` | Drizzle + `bun:sqlite` schema, migrations, sealed-secret crypto |
 | `packages/ui` | Shared shadcn component library |
 | `packages/declarative` | Vendored `@declarativejs/*` framework (see `VENDORED.md`) |
 
-Design notes worth reading: `apps/web/DESIGN.md` (UI language) and the schema
-comments in `packages/db/src/schema/` (content-addressed dependency snapshots,
-the findings lifecycle that makes scan-diffing one indexed query).
+Worth reading: `apps/web/DESIGN.md` for the UI language, and the schema comments in `packages/db/src/schema/` for the content-addressed dependency snapshots and the findings lifecycle that makes scan-diffing a single indexed query.
 
-## Security notes
+### Security posture
 
-- Tokens and channel secrets are AES-256-GCM sealed with AAD binding them to
-  their owning row; key rotation is supported via `APP_ENCRYPTION_KEY_PREVIOUS`.
-- Lockfile regeneration runs `npm install --package-lock-only --ignore-scripts`
-  in a scrubbed temp environment — no dependency code ever executes.
-- The API enforces RBAC server-side on every route; the UI's role gating is
-  purely cosmetic on top.
+- Lockfile regeneration runs `npm`/`bun` with `--ignore-scripts` in a scrubbed temporary directory — dependency code never executes.
+- The API enforces RBAC server-side on every route; UI role gating is cosmetic on top.
+- Scanned repository content is only ever parsed, never evaluated.
 
-## License
+## Known limitations
 
-MIT
+> [!WARNING]
+> - Repositories **without a committed lockfile** currently scan to zero dependencies — declared ranges alone aren't resolved against the registry yet.
+> - `yarn.lock` and `pnpm-lock.yaml` are detected but not yet parsed; `bun.lockb` (binary) is not supported — commit the text `bun.lock` instead.
+> - Roles are global (not per-project) in this release.

@@ -1,13 +1,4 @@
-import { useEffect, useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
-import {
-  Bell,
-  FolderPlus,
-  LayoutDashboard,
-  UserCircle,
-  Users,
-} from "lucide-react"
-import type { LucideIcon } from "lucide-react"
 import {
   CommandDialog,
   CommandEmpty,
@@ -16,6 +7,15 @@ import {
   CommandItem,
   CommandList,
 } from "@workspace/ui/components/command"
+import type { LucideIcon } from "lucide-react"
+import {
+  Bell,
+  FolderPlus,
+  LayoutDashboard,
+  UserCircle,
+  Users,
+} from "lucide-react"
+import { useEffect, useState } from "react"
 import { usePermissions } from "@/features/auth/use-permissions"
 import type { Capability } from "@/lib/permissions"
 

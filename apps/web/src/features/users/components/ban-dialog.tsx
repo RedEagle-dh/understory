@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react"
-import { toast } from "@workspace/ui/components/toast"
 import { Button } from "@workspace/ui/components/button"
 import {
   Dialog,
@@ -12,6 +10,8 @@ import {
 import { Field, FieldLabel } from "@workspace/ui/components/field"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { Textarea } from "@workspace/ui/components/textarea"
+import { toast } from "@workspace/ui/components/toast"
+import { useEffect, useState } from "react"
 import { useBanUser } from "../api"
 
 interface BanDialogProps {

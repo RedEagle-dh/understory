@@ -1,14 +1,5 @@
-import { Link, useMatchRoute } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import {
-  Bell,
-  FolderKanban,
-  FolderPlus,
-  LayoutDashboard,
-  UserCircle,
-  Users,
-} from "lucide-react"
-import type { LucideIcon } from "lucide-react"
+import { Link, useMatchRoute } from "@tanstack/react-router"
 import {
   Sidebar,
   SidebarContent,
@@ -22,6 +13,15 @@ import {
   SidebarMenuItem,
 } from "@workspace/ui/components/sidebar"
 import { cn } from "@workspace/ui/lib/utils"
+import type { LucideIcon } from "lucide-react"
+import {
+  Bell,
+  FolderKanban,
+  FolderPlus,
+  LayoutDashboard,
+  UserCircle,
+  Users,
+} from "lucide-react"
 import { RoleGate } from "@/components/common/role-gate"
 import { Wordmark } from "@/components/common/wordmark"
 import { projectsQueryOptions } from "@/features/projects/api"
@@ -47,7 +47,10 @@ function RecentProjects() {
           <SidebarMenuButton
             size="sm"
             render={
-              <Link to="/projects/$projectId" params={{ projectId: project.id }} />
+              <Link
+                to="/projects/$projectId"
+                params={{ projectId: project.id }}
+              />
             }
           >
             <span

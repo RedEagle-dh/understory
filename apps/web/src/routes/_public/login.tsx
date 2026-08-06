@@ -1,7 +1,7 @@
-import { Link, createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { z } from "zod"
-import { LoginForm } from "@/features/auth/components/login-form"
 import { setupStatusQueryOptions } from "@/features/auth/api"
+import { LoginForm } from "@/features/auth/components/login-form"
 
 const searchSchema = z.object({
   redirect: z.string().optional(),
@@ -22,7 +22,7 @@ function LoginPage() {
     <div className="flex flex-col gap-4">
       <LoginForm redirectTo={redirect} />
       {setup.setupRequired && (
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-muted-foreground text-sm">
           First run?{" "}
           <Link to="/signup" className="text-foreground underline">
             Create the admin account

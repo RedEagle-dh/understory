@@ -1,11 +1,11 @@
 import {
   type ColumnDef,
+  flexRender,
+  getCoreRowModel,
   type OnChangeFn,
   type PaginationState,
   type RowSelectionState,
   type SortingState,
-  flexRender,
-  getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table"
 import {

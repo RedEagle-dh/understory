@@ -1,5 +1,5 @@
-import { SeverityBadge } from "@/components/common/severity-badge"
 import { cn } from "@workspace/ui/lib/utils"
+import { SeverityBadge } from "@/components/common/severity-badge"
 import type { Severity, VulnSummary } from "../api"
 
 const SEVERITIES: Severity[] = ["critical", "high", "moderate", "low"]
@@ -37,7 +37,7 @@ export function SeveritySummaryStrip({
             )}
           >
             <SeverityBadge severity={severity} />
-            <span className="font-heading text-xs text-muted-foreground">
+            <span className="font-heading text-muted-foreground text-xs">
               {counts[severity]}
             </span>
           </button>

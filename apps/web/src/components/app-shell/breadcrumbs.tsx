@@ -1,6 +1,5 @@
-import { Fragment } from "react"
-import { Link, useMatches } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
+import { Link, useMatches } from "@tanstack/react-router"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,6 +8,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@workspace/ui/components/breadcrumb"
+import { Fragment } from "react"
 import { qk } from "@/lib/query-keys"
 
 export function Breadcrumbs() {
@@ -39,7 +39,8 @@ export function Breadcrumbs() {
       typeof params.projectId === "string"
     ) {
       const cached = queryClient.getQueryData(qk.project(params.projectId)) as
-        { name?: string } | undefined
+        | { name?: string }
+        | undefined
       return cached?.name ?? params.projectId
     }
     return undefined

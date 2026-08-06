@@ -1,15 +1,15 @@
-import { createFileRoute, redirect } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
+import { createFileRoute, redirect } from "@tanstack/react-router"
 import { PageHeader } from "@/components/states/page-header"
 import { QueryBoundary } from "@/components/states/query-boundary"
+import { RuleList } from "@/features/notifications/components/rule-list"
+import { projectQueryOptions } from "@/features/projects/api"
 import { AccessTokenCard } from "@/features/projects/components/settings/access-token-card"
 import { AutoBumpCard } from "@/features/projects/components/settings/auto-bump-card"
 import { AutoPrCard } from "@/features/projects/components/settings/auto-pr-card"
 import { DangerZoneCard } from "@/features/projects/components/settings/danger-zone-card"
 import { RepositoryCard } from "@/features/projects/components/settings/repository-card"
 import { ScanningCard } from "@/features/projects/components/settings/scanning-card"
-import { projectQueryOptions } from "@/features/projects/api"
-import { RuleList } from "@/features/notifications/components/rule-list"
 
 export const Route = createFileRoute("/_authed/projects/$projectId/settings")({
   staticData: { crumb: "Settings" },

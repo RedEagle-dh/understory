@@ -1,5 +1,3 @@
-import { useState } from "react"
-import { toast } from "@workspace/ui/components/toast"
 import { Button } from "@workspace/ui/components/button"
 import {
   Card,
@@ -16,6 +14,8 @@ import {
 } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
 import { Spinner } from "@workspace/ui/components/spinner"
+import { toast } from "@workspace/ui/components/toast"
+import { useState } from "react"
 import { ConfirmDialog } from "@/components/common/confirm-dialog"
 import type { ProjectDetail } from "@/features/projects/api"
 import {
@@ -51,7 +51,7 @@ export function AccessTokenCard({ project }: { project: ProjectDetail }) {
       <CardContent>
         {!showInput ? (
           <div className="flex items-center justify-between gap-3">
-            <span className="font-heading text-sm text-muted-foreground">
+            <span className="font-heading text-muted-foreground text-sm">
               ••••{project.tokenLast4}
             </span>
             <div className="flex gap-2">

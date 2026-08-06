@@ -1,6 +1,5 @@
-import { Link, useNavigate } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
-import { ChevronsUpDown, LogOut, Moon, Sun, UserCircle } from "lucide-react"
+import { Link, useNavigate } from "@tanstack/react-router"
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
 import { Badge } from "@workspace/ui/components/badge"
 import {
@@ -17,6 +16,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@workspace/ui/components/sidebar"
+import { ChevronsUpDown, LogOut, Moon, Sun, UserCircle } from "lucide-react"
 import { useTheme } from "@/components/theme/theme-provider"
 import { useSession } from "@/features/auth/use-permissions"
 import { authClient } from "@/lib/auth-client"
@@ -54,10 +54,10 @@ export function NavUser() {
               <AvatarFallback>{initials(displayName)}</AvatarFallback>
             </Avatar>
             <div className="flex min-w-0 flex-1 flex-col text-left leading-tight">
-              <span className="truncate text-sm font-medium">
+              <span className="truncate font-medium text-sm">
                 {displayName}
               </span>
-              <span className="truncate text-xs text-muted-foreground">
+              <span className="truncate text-muted-foreground text-xs">
                 {user.email}
               </span>
             </div>

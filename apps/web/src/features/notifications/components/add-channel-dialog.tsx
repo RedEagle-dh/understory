@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react"
-import { toast } from "@workspace/ui/components/toast"
 import { Alert, AlertDescription } from "@workspace/ui/components/alert"
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -21,6 +19,8 @@ import {
 } from "@workspace/ui/components/select"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { Switch } from "@workspace/ui/components/switch"
+import { toast } from "@workspace/ui/components/toast"
+import { useEffect, useState } from "react"
 import { ApiError } from "@/lib/api-error"
 import type { ChannelListItem, ChannelType } from "../api"
 import { useCreateChannel, useUpdateChannel } from "../api"
@@ -208,7 +208,7 @@ export function AddChannelDialog({
                 </SelectContent>
               </Select>
             ) : (
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground text-sm">
                 {TYPE_LABELS[state.type]}
               </span>
             )}

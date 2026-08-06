@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router"
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router"
 import { SeveritySpectrum } from "@/components/common/severity-spectrum"
 import { Wordmark } from "@/components/common/wordmark"
 import { sessionQueryOptions } from "@/features/auth/api"
@@ -23,7 +23,7 @@ function PublicLayout() {
         </div>
         <Outlet />
       </div>
-      <p className="font-heading text-xs text-muted-foreground">
+      <p className="font-heading text-muted-foreground text-xs">
         self-hosted npm dependency auditing
       </p>
     </main>

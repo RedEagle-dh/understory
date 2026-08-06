@@ -1,5 +1,4 @@
 import type { ColumnDef } from "@tanstack/react-table"
-import { ExternalLink, RefreshCw } from "lucide-react"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Spinner } from "@workspace/ui/components/spinner"
@@ -8,6 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip"
+import { ExternalLink, RefreshCw } from "lucide-react"
 import { PrStatusBadge } from "@/components/common/pr-status-badge"
 import { RelativeTime } from "@/components/common/relative-time"
 import { RoleGate } from "@/components/common/role-gate"

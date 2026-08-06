@@ -1,6 +1,5 @@
-import { useQuery } from "@tanstack/react-query"
 import { useForm } from "@tanstack/react-form"
-import { toast } from "@workspace/ui/components/toast"
+import { useQuery } from "@tanstack/react-query"
 import { Button } from "@workspace/ui/components/button"
 import {
   Card,
@@ -24,6 +23,7 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select"
 import { Spinner } from "@workspace/ui/components/spinner"
+import { toast } from "@workspace/ui/components/toast"
 import { QueryBoundary } from "@/components/states/query-boundary"
 import { adminSettingsQueryOptions, useUpdateAdminSettings } from "../api"
 

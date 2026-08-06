@@ -1,4 +1,3 @@
-import { CheckIcon, PlusCircle } from "lucide-react"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -16,6 +15,7 @@ import {
 } from "@workspace/ui/components/popover"
 import { Separator } from "@workspace/ui/components/separator"
 import { cn } from "@workspace/ui/lib/utils"
+import { CheckIcon, PlusCircle } from "lucide-react"
 
 export interface FacetedFilterOption {
   label: string
@@ -99,7 +99,7 @@ export function DataTableFacetedFilter({
                     </span>
                     <span>{option.label}</span>
                     {option.count !== undefined && (
-                      <span className="ml-auto font-heading text-xs text-muted-foreground">
+                      <span className="ml-auto font-heading text-muted-foreground text-xs">
                         {option.count}
                       </span>
                     )}

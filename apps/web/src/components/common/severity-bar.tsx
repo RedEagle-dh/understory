@@ -40,7 +40,7 @@ export function SeverityBar({ counts, className }: SeverityBarProps) {
     return (
       <div className={cn("flex items-center gap-2", className)}>
         <div className="h-1.5 flex-1 rounded-full bg-muted" />
-        <span className="text-xs text-muted-foreground">
+        <span className="text-muted-foreground text-xs">
           no known vulnerabilities
         </span>
       </div>
@@ -67,7 +67,7 @@ export function SeverityBar({ counts, className }: SeverityBarProps) {
             className={cn("flex items-center justify-center", segment.bar)}
             style={{ width: `${(counts[segment.key] / total) * 100}%` }}
           >
-            <span className="hidden font-heading text-[10px] font-medium text-background sm:inline">
+            <span className="hidden font-heading font-medium text-[10px] text-background sm:inline">
               {counts[segment.key]}
             </span>
           </div>

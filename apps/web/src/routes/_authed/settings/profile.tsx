@@ -1,4 +1,3 @@
-import { UserCircle } from "lucide-react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Badge } from "@workspace/ui/components/badge"
 import {
@@ -9,6 +8,7 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card"
 import { Field, FieldGroup, FieldLabel } from "@workspace/ui/components/field"
+import { UserCircle } from "lucide-react"
 import { PageHeader } from "@/components/states/page-header"
 import { QueryBoundary } from "@/components/states/query-boundary"
 import { ChangePasswordForm } from "@/features/auth/components/change-password-form"
@@ -64,7 +64,7 @@ function ProfileSettings() {
                     </Field>
                     <Field>
                       <FieldLabel>Email</FieldLabel>
-                      <p className="font-heading text-sm text-muted-foreground">
+                      <p className="font-heading text-muted-foreground text-sm">
                         {data.user.email}
                       </p>
                     </Field>
@@ -76,7 +76,7 @@ function ProfileSettings() {
                     </Field>
                     <Field orientation="horizontal">
                       <FieldLabel className="flex-1">Member since</FieldLabel>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-muted-foreground text-sm">
                         {formatAbsoluteDate(data.user.createdAt)}
                       </p>
                     </Field>

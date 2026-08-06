@@ -30,7 +30,7 @@ export function FixAvailability({
 }: FixAvailabilityProps) {
   if (fixedIn === null) {
     return (
-      <span className={cn("text-xs text-muted-foreground", className)}>
+      <span className={cn("text-muted-foreground text-xs", className)}>
         no fix available
       </span>
     )

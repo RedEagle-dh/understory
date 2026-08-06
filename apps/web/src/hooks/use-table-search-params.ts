@@ -1,4 +1,8 @@
-import type { OnChangeFn, PaginationState, SortingState } from "@tanstack/react-table"
+import type {
+  OnChangeFn,
+  PaginationState,
+  SortingState,
+} from "@tanstack/react-table"
 
 interface TableSearchBase {
   page: number
@@ -54,7 +58,8 @@ export function useTableSearchParams<TSearch extends TableSearchBase>({
         const prevSorting: SortingState = prev.sort
           ? [{ id: prev.sort, desc: false }]
           : []
-        const next = typeof updater === "function" ? updater(prevSorting) : updater
+        const next =
+          typeof updater === "function" ? updater(prevSorting) : updater
         return { ...prev, sort: next[0]?.id, page: 1 } as TSearch
       },
       replace: true,

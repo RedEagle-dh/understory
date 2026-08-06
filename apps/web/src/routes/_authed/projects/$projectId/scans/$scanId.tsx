@@ -1,8 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { AlertTriangle } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "@workspace/ui/components/alert"
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@workspace/ui/components/alert"
 import { Skeleton } from "@workspace/ui/components/skeleton"
+import { AlertTriangle } from "lucide-react"
 import { PageHeader } from "@/components/states/page-header"
 import { QueryBoundary } from "@/components/states/query-boundary"
 import { projectQueryOptions } from "@/features/projects/api"
@@ -58,7 +62,7 @@ function ScanDetail() {
                 </AlertTitle>
                 <AlertDescription>
                   {scan.errorMessage !== null ? (
-                    <pre className="mt-2 max-h-64 overflow-auto text-xs whitespace-pre-wrap">
+                    <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-xs">
                       {scan.errorMessage}
                     </pre>
                   ) : (

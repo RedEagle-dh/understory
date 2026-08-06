@@ -29,7 +29,7 @@ export function VersionDelta({
   if (updateKind === "none" || target === null) return null
 
   return (
-    <span className={cn("font-heading text-xs whitespace-nowrap", className)}>
+    <span className={cn("whitespace-nowrap font-heading text-xs", className)}>
       <span className="text-muted-foreground">{current}</span>
       <span className="mx-1 text-muted-foreground">→</span>
       <span className={TARGET_CLASS[updateKind]}>{target}</span>

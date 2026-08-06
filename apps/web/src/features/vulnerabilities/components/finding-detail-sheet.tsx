@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query"
-import { ExternalLink } from "lucide-react"
 import { Badge } from "@workspace/ui/components/badge"
 import { Separator } from "@workspace/ui/components/separator"
 import {
@@ -9,6 +8,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@workspace/ui/components/sheet"
+import { ExternalLink } from "lucide-react"
 import { CopyButton } from "@/components/common/copy-button"
 import { DepTypeBadge } from "@/components/common/dep-type-badge"
 import { FixAvailability } from "@/components/common/fix-availability"
@@ -55,7 +55,7 @@ export function FindingDetailSheet({
                         {finding.packageName}@{finding.packageVersion}
                       </span>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
                       {finding.workspace !== "" && (
                         <Badge variant="outline" className="font-heading">
                           {finding.workspace}
@@ -69,11 +69,11 @@ export function FindingDetailSheet({
                       fixType={finding.fixType}
                       fixWithinRange={finding.fixWithinRange}
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       First seen <RelativeTime date={finding.firstSeenAt} />
                     </p>
                     {finding.state === "ignored" && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         Ignored: {finding.ignoreReason}
                         {finding.ignoreUntil !== null &&
                           ` · until ${formatAbsoluteDate(finding.ignoreUntil)}`}
@@ -98,7 +98,7 @@ export function FindingDetailSheet({
                           href={finding.advisory.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+                          className="inline-flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground hover:underline"
                         >
                           advisory
                           <ExternalLink className="size-3" />
@@ -107,11 +107,11 @@ export function FindingDetailSheet({
                     </div>
                     <p className="text-sm">{finding.advisory.summary}</p>
                     {finding.advisory.details !== null && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         {finding.advisory.details}
                       </p>
                     )}
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-3 text-muted-foreground text-xs">
                       {finding.advisory.cvssScore !== null && (
                         <span className="font-heading">
                           CVSS {finding.advisory.cvssScore.toFixed(1)}
@@ -142,7 +142,7 @@ export function FindingDetailSheet({
                     <>
                       <Separator />
                       <section>
-                        <h3 className="mb-2 text-sm font-medium">Aliases</h3>
+                        <h3 className="mb-2 font-medium text-sm">Aliases</h3>
                         <div className="flex flex-wrap gap-1">
                           {finding.advisory.aliases.map((alias) => (
                             <Badge
@@ -162,7 +162,7 @@ export function FindingDetailSheet({
                     <>
                       <Separator />
                       <section>
-                        <h3 className="mb-2 text-sm font-medium">
+                        <h3 className="mb-2 font-medium text-sm">
                           Vulnerable ranges
                         </h3>
                         <div className="flex flex-col gap-1.5">
@@ -193,7 +193,7 @@ export function FindingDetailSheet({
                     <>
                       <Separator />
                       <section>
-                        <h3 className="mb-2 text-sm font-medium">Sources</h3>
+                        <h3 className="mb-2 font-medium text-sm">Sources</h3>
                         <div className="flex flex-wrap gap-1.5">
                           {finding.advisory.sources.map((source) => (
                             <Badge

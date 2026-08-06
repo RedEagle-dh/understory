@@ -1,12 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
 import { type QueryClient, useQueryClient } from "@tanstack/react-query"
-import {
-  CheckCircle2,
-  ChevronDown,
-  ExternalLink,
-  OctagonX,
-  X,
-} from "lucide-react"
 import {
   Alert,
   AlertDescription,
@@ -31,6 +23,14 @@ import {
 } from "@workspace/ui/components/sheet"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { cn } from "@workspace/ui/lib/utils"
+import {
+  CheckCircle2,
+  ChevronDown,
+  ExternalLink,
+  OctagonX,
+  X,
+} from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { CopyButton } from "@/components/common/copy-button"
 import { SeverityBadge } from "@/components/common/severity-badge"
 import { VersionDelta } from "@/components/common/version-delta"
@@ -224,13 +224,13 @@ function PlanItemsList({ plan }: { plan: PrPlan }) {
 
       {dropped.length > 0 && (
         <div className="flex flex-col gap-2">
-          <p className="text-xs font-medium text-muted-foreground">
+          <p className="font-medium text-muted-foreground text-xs">
             Dropped ({dropped.length})
           </p>
           {dropped.map((item) => (
             <div
               key={`${item.workspace}:${item.packageName}`}
-              className="rounded-md border border-dashed p-2.5 text-xs text-muted-foreground"
+              className="rounded-md border border-dashed p-2.5 text-muted-foreground text-xs"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-heading">{item.packageName}</span>
@@ -363,7 +363,7 @@ export function CreatePrSheet({ projectId }: CreatePrSheetProps) {
           {step === "select" && (
             <div className="flex flex-col gap-2">
               {selections.length === 0 && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   No packages selected yet. Add one below.
                 </p>
               )}
@@ -432,14 +432,14 @@ export function CreatePrSheet({ projectId }: CreatePrSheetProps) {
           {step === "preview" && (
             <div className="flex flex-col gap-4">
               {plan === undefined ? (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 text-muted-foreground text-xs">
                   <Spinner className="size-3.5" />
                   Building plan…
                 </div>
               ) : (
                 <>
                   {planPr.isPending && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs">
                       <Spinner className="size-3.5" />
                       Re-planning…
                     </div>
@@ -476,7 +476,7 @@ export function CreatePrSheet({ projectId }: CreatePrSheetProps) {
                   )}
 
                   <div>
-                    <p className="text-xs text-muted-foreground">Title</p>
+                    <p className="text-muted-foreground text-xs">Title</p>
                     <p className="font-heading text-sm">{plan.title}</p>
                   </div>
 
@@ -499,7 +499,7 @@ export function CreatePrSheet({ projectId }: CreatePrSheetProps) {
                           />
                         )
                     )}
-                    <span className="font-heading text-xs text-muted-foreground">
+                    <span className="font-heading text-muted-foreground text-xs">
                       {plan.includedCount} included · {plan.droppedCount}{" "}
                       dropped
                     </span>
@@ -507,7 +507,7 @@ export function CreatePrSheet({ projectId }: CreatePrSheetProps) {
 
                   <PlanItemsList plan={plan} />
 
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     {plan.lockfileRegenPlanned
                       ? "Lockfile will be regenerated."
                       : "Lockfile will not be regenerated."}
@@ -542,7 +542,7 @@ export function CreatePrSheet({ projectId }: CreatePrSheetProps) {
                       PR body preview
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <pre className="mt-2 max-h-64 overflow-auto rounded-md border bg-muted/30 p-3 font-heading text-xs whitespace-pre-wrap">
+                      <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-3 font-heading text-xs">
                         {plan.body}
                       </pre>
                     </CollapsibleContent>
@@ -557,7 +557,7 @@ export function CreatePrSheet({ projectId }: CreatePrSheetProps) {
               {createPr.isPending && (
                 <>
                   <Spinner className="size-6" />
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Opening pull request…
                   </p>
                 </>
@@ -574,7 +574,7 @@ export function CreatePrSheet({ projectId }: CreatePrSheetProps) {
                     #{createPr.data.number}
                     <ExternalLink className="size-4" />
                   </a>
-                  <div className="group flex items-center gap-1 font-heading text-xs text-muted-foreground">
+                  <div className="group flex items-center gap-1 font-heading text-muted-foreground text-xs">
                     {createPr.data.branch}
                     <CopyButton
                       value={createPr.data.branch}
@@ -582,7 +582,7 @@ export function CreatePrSheet({ projectId }: CreatePrSheetProps) {
                       className="opacity-100"
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     {createPr.data.lockfileUpdated
                       ? "Lockfile regenerated."
                       : "Lockfile not updated — run npm install before merging."}
@@ -595,7 +595,7 @@ export function CreatePrSheet({ projectId }: CreatePrSheetProps) {
               {createPr.isError && (
                 <>
                   <OctagonX className="size-8 text-destructive" />
-                  <p className="text-sm text-destructive">
+                  <p className="text-destructive text-sm">
                     {createPr.error instanceof ApiError
                       ? createPr.error.detail
                       : "Something went wrong."}

@@ -1,4 +1,9 @@
-import { keepPreviousData, queryOptions, useMutation, useQueryClient } from "@tanstack/react-query"
+import {
+  keepPreviousData,
+  queryOptions,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { unwrap } from "@/lib/api-error"
 import { qk } from "@/lib/query-keys"
@@ -18,9 +23,7 @@ export interface VulnsParams {
 
 async function fetchVulns(projectId: string, params: VulnsParams) {
   return unwrap(
-    await api.api
-      .projects({ projectId })
-      .vulnerabilities.get({ query: params })
+    await api.api.projects({ projectId }).vulnerabilities.get({ query: params })
   )
 }
 
@@ -33,7 +36,9 @@ export function vulnsQueryOptions(projectId: string, params: VulnsParams) {
   })
 }
 
-export type FindingListItem = Awaited<ReturnType<typeof fetchVulns>>["items"][number]
+export type FindingListItem = Awaited<
+  ReturnType<typeof fetchVulns>
+>["items"][number]
 
 async function fetchSummary(projectId: string) {
   return unwrap(

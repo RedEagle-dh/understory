@@ -26,7 +26,7 @@ interface BumpPickerProps {
 export function BumpPicker({ value, options, onChange }: BumpPickerProps) {
   if (options.length === 0) {
     return (
-      <span className="font-heading text-xs text-muted-foreground">
+      <span className="font-heading text-muted-foreground text-xs">
         resolved by plan
       </span>
     )

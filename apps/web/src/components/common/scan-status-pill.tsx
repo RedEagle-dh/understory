@@ -35,7 +35,7 @@ export function ScanStatusPill({ scan, className }: ScanStatusPillProps) {
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-1.5 font-heading text-xs text-muted-foreground",
+          "inline-flex items-center gap-1.5 font-heading text-muted-foreground text-xs",
           className
         )}
       >
@@ -65,14 +65,14 @@ export function ScanStatusPill({ scan, className }: ScanStatusPillProps) {
 
   if (scan.finishedAt === null) {
     return (
-      <span className={cn("text-xs text-muted-foreground", className)}>—</span>
+      <span className={cn("text-muted-foreground text-xs", className)}>—</span>
     )
   }
 
   return (
     <RelativeTime
       date={scan.finishedAt}
-      className={cn("font-heading text-xs text-muted-foreground", className)}
+      className={cn("font-heading text-muted-foreground text-xs", className)}
     />
   )
 }

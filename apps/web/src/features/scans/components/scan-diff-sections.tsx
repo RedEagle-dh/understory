@@ -13,7 +13,7 @@ interface DiffSectionProps {
 function DiffSection({ title, children }: DiffSectionProps) {
   return (
     <section>
-      <h3 className="mb-2 text-sm font-medium">{title}</h3>
+      <h3 className="mb-2 font-medium text-sm">{title}</h3>
       {children}
     </section>
   )
@@ -40,7 +40,7 @@ export function ScanDiffSections({ scanId }: ScanDiffSectionsProps) {
 
         if (isEmpty) {
           return (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               No changes since the previous scan.
             </p>
           )
@@ -50,7 +50,7 @@ export function ScanDiffSections({ scanId }: ScanDiffSectionsProps) {
           <div className="flex flex-col gap-6">
             <DiffSection title="New vulnerabilities">
               {diff.newFindings.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   No new vulnerabilities.
                 </p>
               ) : (
@@ -71,7 +71,7 @@ export function ScanDiffSections({ scanId }: ScanDiffSectionsProps) {
                         fixedIn={finding.fixedIn}
                         fixType={finding.fixType}
                       />
-                      <span className="ml-auto max-w-md truncate text-xs text-muted-foreground">
+                      <span className="ml-auto max-w-md truncate text-muted-foreground text-xs">
                         {finding.summary}
                       </span>
                     </div>
@@ -82,7 +82,7 @@ export function ScanDiffSections({ scanId }: ScanDiffSectionsProps) {
 
             <DiffSection title="Resolved">
               {diff.resolvedFindings.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Nothing resolved.
                 </p>
               ) : (
@@ -90,7 +90,7 @@ export function ScanDiffSections({ scanId }: ScanDiffSectionsProps) {
                   {diff.resolvedFindings.map((finding) => (
                     <div
                       key={finding.findingId}
-                      className="flex flex-wrap items-center gap-2 rounded-md border p-2.5 text-sm text-muted-foreground"
+                      className="flex flex-wrap items-center gap-2 rounded-md border p-2.5 text-muted-foreground text-sm"
                     >
                       <span className="font-heading">
                         {finding.packageName}@{finding.packageVersion}
@@ -104,9 +104,7 @@ export function ScanDiffSections({ scanId }: ScanDiffSectionsProps) {
 
             <DiffSection title="New majors available">
               {diff.newMajors.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  No new majors.
-                </p>
+                <p className="text-muted-foreground text-xs">No new majors.</p>
               ) : (
                 <div className="flex flex-col gap-2">
                   {diff.newMajors.map((major, index) => (
@@ -116,7 +114,9 @@ export function ScanDiffSections({ scanId }: ScanDiffSectionsProps) {
                     >
                       <span className="font-heading">{major.packageName}</span>
                       <VersionDelta
-                        current={major.previousLatestVersion ?? major.currentVersion}
+                        current={
+                          major.previousLatestVersion ?? major.currentVersion
+                        }
                         target={major.latestVersion}
                         updateKind="major"
                       />

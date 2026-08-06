@@ -1,5 +1,3 @@
-import { AlertTriangle, Lock, ShieldAlert, WifiOff } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import {
   Empty,
@@ -9,6 +7,8 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@workspace/ui/components/empty"
+import type { LucideIcon } from "lucide-react"
+import { AlertTriangle, Lock, ShieldAlert, WifiOff } from "lucide-react"
 import { ApiError } from "@/lib/api-error"
 
 interface ErrorStateProps {

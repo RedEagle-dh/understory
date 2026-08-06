@@ -1,13 +1,13 @@
-import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Users } from "lucide-react"
+import { useState } from "react"
 import { DataTable } from "@/components/data-table/data-table"
 import { EmptyState } from "@/components/states/empty-state"
 import { QueryBoundary } from "@/components/states/query-boundary"
 import { useSession } from "@/features/auth/use-permissions"
-import { asRole, buildUserColumns } from "../columns"
 import type { UserListItem } from "../api"
 import { usersQueryOptions } from "../api"
+import { asRole, buildUserColumns } from "../columns"
 import { BanDialog } from "./ban-dialog"
 
 /** Client-side table (better-auth's admin list caps at 100, no server pagination needed here). */

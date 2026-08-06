@@ -1,6 +1,4 @@
-import { useState } from "react"
 import { useForm } from "@tanstack/react-form"
-import { toast } from "@workspace/ui/components/toast"
 import { Alert, AlertDescription } from "@workspace/ui/components/alert"
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -11,6 +9,8 @@ import {
 } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
 import { Spinner } from "@workspace/ui/components/spinner"
+import { toast } from "@workspace/ui/components/toast"
+import { useState } from "react"
 import { authClient } from "@/lib/auth-client"
 
 const MIN_PASSWORD_LENGTH = 12

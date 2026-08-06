@@ -12,12 +12,14 @@ import { ScanStatusPill } from "@/components/common/scan-status-pill"
 import { SeverityBar } from "@/components/common/severity-bar"
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header"
 import type { ScanListItem } from "./api"
-import { TRIGGER_LABEL, TRIGGER_VARIANT, formatDuration } from "./lib"
+import { formatDuration, TRIGGER_LABEL, TRIGGER_VARIANT } from "./lib"
 
 export const scanColumns: ColumnDef<ScanListItem>[] = [
   {
     id: "started",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Started" />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Started" />
+    ),
     enableSorting: false,
     cell: ({ row }) => (
       <RelativeTime date={row.original.startedAt} className="text-sm" />
@@ -25,7 +27,9 @@ export const scanColumns: ColumnDef<ScanListItem>[] = [
   },
   {
     id: "trigger",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Trigger" />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Trigger" />
+    ),
     enableSorting: false,
     cell: ({ row }) => {
       const trigger = row.original.trigger
@@ -47,13 +51,17 @@ export const scanColumns: ColumnDef<ScanListItem>[] = [
   },
   {
     id: "status",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Status" />
+    ),
     enableSorting: false,
     cell: ({ row }) => <ScanStatusPill scan={row.original} />,
   },
   {
     id: "duration",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Duration" />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Duration" />
+    ),
     enableSorting: false,
     meta: { mono: true },
     cell: ({ row }) => (
@@ -63,7 +71,10 @@ export const scanColumns: ColumnDef<ScanListItem>[] = [
           <Tooltip>
             <TooltipTrigger
               render={
-                <Badge variant="outline" className="font-sans text-[10px] text-muted-foreground" />
+                <Badge
+                  variant="outline"
+                  className="font-sans text-[10px] text-muted-foreground"
+                />
               }
             >
               cached
@@ -78,14 +89,18 @@ export const scanColumns: ColumnDef<ScanListItem>[] = [
   },
   {
     id: "deps",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Deps" />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Deps" />
+    ),
     enableSorting: false,
     meta: { mono: true },
     cell: ({ row }) => row.original.totalDeps ?? "—",
   },
   {
     id: "vulnerabilities",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Vulnerabilities" />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Vulnerabilities" />
+    ),
     enableSorting: false,
     meta: { className: "min-w-32" },
     cell: ({ row }) => (
@@ -101,14 +116,16 @@ export const scanColumns: ColumnDef<ScanListItem>[] = [
   },
   {
     id: "delta",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Δ findings" />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Δ findings" />
+    ),
     enableSorting: false,
     meta: { mono: true },
     cell: ({ row }) => {
       const newFindings = row.original.newFindings ?? 0
       const resolvedFindings = row.original.resolvedFindings ?? 0
       return (
-        <span className="text-xs whitespace-nowrap">
+        <span className="whitespace-nowrap text-xs">
           <span
             className={cn(
               newFindings > 0 ? "text-severity-high" : "text-muted-foreground"
@@ -123,13 +140,15 @@ export const scanColumns: ColumnDef<ScanListItem>[] = [
   },
   {
     id: "commit",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Commit" />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Commit" />
+    ),
     enableSorting: false,
     meta: { mono: true },
     cell: ({ row }) => {
       const sha = row.original.commitSha
       if (sha === null) {
-        return <span className="text-xs text-muted-foreground">—</span>
+        return <span className="text-muted-foreground text-xs">—</span>
       }
       return (
         <div className="group flex items-center gap-1">

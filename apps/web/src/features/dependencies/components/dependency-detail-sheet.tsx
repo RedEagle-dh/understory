@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query"
-import { ExternalLink } from "lucide-react"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Separator } from "@workspace/ui/components/separator"
@@ -10,6 +9,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@workspace/ui/components/sheet"
+import { ExternalLink } from "lucide-react"
 import { DepTypeBadge } from "@/components/common/dep-type-badge"
 import { RoleGate } from "@/components/common/role-gate"
 import { SeverityBadge } from "@/components/common/severity-badge"
@@ -73,7 +73,7 @@ export function DependencyDetailSheet({
                   </RoleGate>
 
                   <section>
-                    <h3 className="mb-2 text-sm font-medium">
+                    <h3 className="mb-2 font-medium text-sm">
                       Versions in tree
                     </h3>
                     <div className="flex flex-col gap-2">
@@ -131,7 +131,7 @@ export function DependencyDetailSheet({
                     <>
                       <Separator />
                       <section>
-                        <h3 className="mb-2 text-sm font-medium">
+                        <h3 className="mb-2 font-medium text-sm">
                           Update status
                         </h3>
                         <div className="flex flex-col gap-2">
@@ -162,7 +162,7 @@ export function DependencyDetailSheet({
                         {detail.statuses.some(
                           (status) => status.deprecatedMessage !== null
                         ) && (
-                          <p className="mt-2 text-xs text-destructive">
+                          <p className="mt-2 text-destructive text-xs">
                             {
                               detail.statuses.find(
                                 (status) => status.deprecatedMessage !== null
@@ -177,13 +177,13 @@ export function DependencyDetailSheet({
                   <Separator />
 
                   <section>
-                    <h3 className="mb-2 text-sm font-medium">
+                    <h3 className="mb-2 font-medium text-sm">
                       Open findings
                       {detail.findings.length > 0 &&
                         ` (${detail.findings.length})`}
                     </h3>
                     {detail.findings.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         No open findings for this package.
                       </p>
                     ) : (

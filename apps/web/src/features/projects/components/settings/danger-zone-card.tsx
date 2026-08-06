@@ -1,6 +1,4 @@
-import { useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
-import { toast } from "@workspace/ui/components/toast"
 import { Button } from "@workspace/ui/components/button"
 import {
   Card,
@@ -9,6 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
+import { toast } from "@workspace/ui/components/toast"
+import { useState } from "react"
 import { ConfirmDialog } from "@/components/common/confirm-dialog"
 import type { ProjectDetail } from "@/features/projects/api"
 import { useDeleteProject } from "@/features/projects/api"

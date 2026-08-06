@@ -25,7 +25,9 @@ export function scansQueryOptions(projectId: string, page: number) {
   })
 }
 
-export type ScanListItem = Awaited<ReturnType<typeof fetchScans>>["items"][number]
+export type ScanListItem = Awaited<
+  ReturnType<typeof fetchScans>
+>["items"][number]
 
 async function fetchScan(scanId: string) {
   return unwrap(await api.api.scans({ scanId }).get())

@@ -1,7 +1,7 @@
 import type { Column } from "@tanstack/react-table"
-import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
+import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react"
 
 interface DataTableColumnHeaderProps<TData, TValue> {
   column: Column<TData, TValue>
@@ -23,9 +23,7 @@ export function DataTableColumnHeader<TData, TValue>({
   className,
 }: DataTableColumnHeaderProps<TData, TValue>) {
   if (!column.getCanSort()) {
-    return (
-      <div className={cn("text-xs font-medium", className)}>{title}</div>
-    )
+    return <div className={cn("font-medium text-xs", className)}>{title}</div>
   }
 
   const sorted = column.getIsSorted()
@@ -36,7 +34,7 @@ export function DataTableColumnHeader<TData, TValue>({
       variant="ghost"
       size="sm"
       className={cn(
-        "-ml-2.5 h-7 gap-1 px-2.5 text-xs font-medium",
+        "-ml-2.5 h-7 gap-1 px-2.5 font-medium text-xs",
         sorted !== false && "text-foreground",
         className
       )}

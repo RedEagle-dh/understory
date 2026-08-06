@@ -1,5 +1,4 @@
 import type { ColumnDef } from "@tanstack/react-table"
-import { Ban as BanIcon } from "lucide-react"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Spinner } from "@workspace/ui/components/spinner"
@@ -8,6 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip"
+import { Ban as BanIcon } from "lucide-react"
 import { RelativeTime } from "@/components/common/relative-time"
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header"
 import type { Role } from "@/lib/permissions"

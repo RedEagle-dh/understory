@@ -10,7 +10,10 @@ export function SeveritySpectrum({ className }: { className?: string }) {
   return (
     <div
       aria-hidden
-      className={cn("flex h-0.5 w-full overflow-hidden rounded-full", className)}
+      className={cn(
+        "flex h-0.5 w-full overflow-hidden rounded-full",
+        className
+      )}
     >
       <span className="flex-1 bg-severity-critical" />
       <span className="flex-1 bg-severity-high" />

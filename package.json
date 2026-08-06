@@ -12,8 +12,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "prettier": "catalog:",
-    "prettier-plugin-tailwindcss": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:"
   },
@@ -38,8 +36,6 @@
     "@types/node": "22.20.1",
     "@biomejs/biome": "2.3.8",
     "turbo": "2.10.8",
-    "prettier": "3.9.6",
-    "prettier-plugin-tailwindcss": "0.8.1",
     "drizzle-orm": "0.45.2",
     "drizzle-kit": "0.31.10",
     "better-auth": "1.6.26",

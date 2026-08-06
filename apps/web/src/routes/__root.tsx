@@ -1,18 +1,16 @@
+import type { QueryClient } from "@tanstack/react-query"
 import {
+  createRootRouteWithContext,
   HeadContent,
   Scripts,
-  createRootRouteWithContext,
 } from "@tanstack/react-router"
-import type { QueryClient } from "@tanstack/react-query"
 import { Toaster } from "@workspace/ui/components/toast"
 import { TooltipProvider } from "@workspace/ui/components/tooltip"
-
+import appCss from "@workspace/ui/globals.css?url"
 import {
   ThemeProvider,
   themeInitScript,
 } from "@/components/theme/theme-provider"
-
-import appCss from "@workspace/ui/globals.css?url"
 
 interface RouterContext {
   queryClient: QueryClient
@@ -33,7 +31,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   }),
   notFoundComponent: () => (
     <main className="container mx-auto p-4 pt-16">
-      <h1 className="text-2xl font-semibold">404</h1>
+      <h1 className="font-semibold text-2xl">404</h1>
       <p className="text-muted-foreground">
         The requested page could not be found.
       </p>

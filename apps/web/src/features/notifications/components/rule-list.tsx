@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
-import { Trash2 } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { Switch } from "@workspace/ui/components/switch"
+import { Trash2 } from "lucide-react"
 import { RoleGate } from "@/components/common/role-gate"
 import { SeverityBadge } from "@/components/common/severity-badge"
 import { QueryBoundary } from "@/components/states/query-boundary"
@@ -36,7 +36,7 @@ function RuleRow({ rule, channelName, projectId }: RuleRowProps) {
       </span>
       {severityScoped &&
         (rule.minSeverity === null ? (
-          <span className="text-xs text-muted-foreground">any severity</span>
+          <span className="text-muted-foreground text-xs">any severity</span>
         ) : (
           <SeverityBadge severity={rule.minSeverity} />
         ))}
@@ -82,7 +82,7 @@ export function RuleList({ projectId = "" }: RuleListProps) {
 
   return (
     <div className="space-y-3">
-      <h2 className="font-heading text-base font-medium">
+      <h2 className="font-heading font-medium text-base">
         {projectId === "" ? "Global rules" : "Rules for this project"}
       </h2>
 

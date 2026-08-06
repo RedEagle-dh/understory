@@ -1,4 +1,3 @@
-import type { LucideIcon } from "lucide-react"
 import {
   Empty,
   EmptyContent,
@@ -7,6 +6,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@workspace/ui/components/empty"
+import type { LucideIcon } from "lucide-react"
 
 interface EmptyStateProps {
   icon?: LucideIcon

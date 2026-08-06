@@ -55,8 +55,19 @@
   "overrides": [
     {
       "includes": ["apps/web/**", "packages/ui/**"],
-      "formatter": { "enabled": false },
-      "assist": { "enabled": false },
+      "formatter": {
+        "enabled": true,
+        "indentStyle": "space",
+        "indentWidth": 2
+      },
+      "javascript": {
+        "formatter": {
+          "quoteStyle": "double",
+          "semicolons": "asNeeded",
+          "trailingCommas": "es5",
+          "arrowParentheses": "always"
+        }
+      },
       "linter": {
         "rules": {
           "suspicious": {
@@ -67,6 +78,12 @@
           },
           "a11y": {
             "useSemanticElements": { "level": "off" }
+          },
+          "nursery": {
+            "useSortedClasses": {
+              "level": "warn",
+              "options": { "functions": ["cn", "cva"] }
+            }
           }
         }
       }

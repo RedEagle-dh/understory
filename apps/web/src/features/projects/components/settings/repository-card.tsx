@@ -1,6 +1,4 @@
-import { useState } from "react"
 import { useForm } from "@tanstack/react-form"
-import { toast } from "@workspace/ui/components/toast"
 import { Button } from "@workspace/ui/components/button"
 import {
   Card,
@@ -12,9 +10,11 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
 import { Spinner } from "@workspace/ui/components/spinner"
-import { ApiError } from "@/lib/api-error"
+import { toast } from "@workspace/ui/components/toast"
+import { useState } from "react"
 import type { ProjectDetail } from "@/features/projects/api"
 import { useProjectUpdate, useTestConnection } from "@/features/projects/api"
+import { ApiError } from "@/lib/api-error"
 
 type TestResult =
   | {
@@ -63,7 +63,7 @@ function TestConnectionButton({ projectId }: { projectId: string }) {
       </Button>
       {result !== null &&
         (result.ok ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Resolved <span className="font-heading">{result.branch}</span> ·{" "}
             {result.manifestCount} manifest
             {result.manifestCount === 1 ? "" : "s"}
@@ -71,7 +71,7 @@ function TestConnectionButton({ projectId }: { projectId: string }) {
               ` · ${result.rateLimitRemaining} requests remaining`}
           </p>
         ) : (
-          <p className="text-xs text-destructive">{result.message}</p>
+          <p className="text-destructive text-xs">{result.message}</p>
         ))}
     </div>
   )

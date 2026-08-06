@@ -120,7 +120,7 @@ export const dependencyColumns: ColumnDef<DependencyRow>[] = [
     cell: ({ row }) => (
       <Tooltip>
         <TooltipTrigger
-          render={<span className="text-xs text-muted-foreground" />}
+          render={<span className="text-muted-foreground text-xs" />}
         >
           {row.original.isDirect ? "direct" : "transitive"}
         </TooltipTrigger>

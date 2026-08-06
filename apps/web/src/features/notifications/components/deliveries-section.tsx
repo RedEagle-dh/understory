@@ -1,6 +1,4 @@
-import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { ChevronRight } from "lucide-react"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Collapsible,
@@ -13,6 +11,8 @@ import {
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip"
 import { cn } from "@workspace/ui/lib/utils"
+import { ChevronRight } from "lucide-react"
+import { useState } from "react"
 import { RelativeTime } from "@/components/common/relative-time"
 import { QueryBoundary } from "@/components/states/query-boundary"
 import type { DeliveryStatus } from "../api"
@@ -44,7 +44,7 @@ export function DeliveriesSection({ channelId }: DeliveriesSectionProps) {
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+      <CollapsibleTrigger className="flex items-center gap-1.5 font-medium text-muted-foreground text-sm hover:text-foreground">
         <ChevronRight
           className={cn("size-4 transition-transform", open && "rotate-90")}
         />
@@ -53,7 +53,7 @@ export function DeliveriesSection({ channelId }: DeliveriesSectionProps) {
       <CollapsibleContent className="mt-3">
         <QueryBoundary
           query={channelsQuery}
-          skeleton={<p className="text-sm text-muted-foreground">Loading…</p>}
+          skeleton={<p className="text-muted-foreground text-sm">Loading…</p>}
         >
           {(channelsData) => {
             const channelById = new Map(
@@ -63,11 +63,11 @@ export function DeliveriesSection({ channelId }: DeliveriesSectionProps) {
               <QueryBoundary
                 query={deliveriesQuery}
                 skeleton={
-                  <p className="text-sm text-muted-foreground">Loading…</p>
+                  <p className="text-muted-foreground text-sm">Loading…</p>
                 }
                 empty={(data) => data.items.length === 0}
                 emptyState={
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     No deliveries yet.
                   </p>
                 }
@@ -83,7 +83,7 @@ export function DeliveriesSection({ channelId }: DeliveriesSectionProps) {
                           {delivery.title ??
                             EVENT_TYPE_LABELS[delivery.eventType]}
                         </span>
-                        <span className="w-36 truncate text-xs text-muted-foreground">
+                        <span className="w-36 truncate text-muted-foreground text-xs">
                           {channelById.get(delivery.channelId)?.name ??
                             "Unknown channel"}
                         </span>
@@ -111,7 +111,7 @@ export function DeliveriesSection({ channelId }: DeliveriesSectionProps) {
                         )}
                         <RelativeTime
                           date={delivery.createdAt}
-                          className="w-16 shrink-0 text-right text-xs text-muted-foreground"
+                          className="w-16 shrink-0 text-right text-muted-foreground text-xs"
                         />
                       </div>
                     ))}

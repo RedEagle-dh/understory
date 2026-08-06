@@ -48,7 +48,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
     <Link
       to="/projects/$projectId"
       params={{ projectId: project.id }}
-      className="block rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <Card
         className={cn(
@@ -63,12 +63,12 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="truncate font-heading text-base font-medium">
+                <h3 className="truncate font-heading font-medium text-base">
                   {project.name}
                 </h3>
                 {project.paused && <Badge variant="outline">paused</Badge>}
               </div>
-              <p className="truncate font-heading text-xs text-muted-foreground">
+              <p className="truncate font-heading text-muted-foreground text-xs">
                 {project.owner}/{project.repo}
                 {project.branch !== "" && `@${project.branch}`}
               </p>
@@ -79,7 +79,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <SeverityBar counts={project.vulnCounts} />
 
           <div className="flex items-center justify-between gap-2">
-            <p className="font-heading text-xs text-muted-foreground">
+            <p className="font-heading text-muted-foreground text-xs">
               {project.outdatedCount} outdated
               {project.majorOutdatedCount > 0 &&
                 ` · ${project.majorOutdatedCount} major`}

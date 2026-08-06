@@ -1,6 +1,6 @@
-import { createAuthClient } from "better-auth/react"
 import { adminClient } from "better-auth/client/plugins"
 import { createAccessControl } from "better-auth/plugins/access"
+import { createAuthClient } from "better-auth/react"
 
 /**
  * Client-side mirror of the API's role *names* only (see

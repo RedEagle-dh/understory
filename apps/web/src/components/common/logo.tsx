@@ -12,7 +12,7 @@ export function Logo({ className }: { className?: string }) {
     <svg
       viewBox="0 0 64 64"
       fill="none"
-      aria-hidden
+      aria-hidden="true"
       className={cn("size-5 shrink-0", className)}
       xmlns="http://www.w3.org/2000/svg"
     >

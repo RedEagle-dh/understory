@@ -1,7 +1,7 @@
-import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Bell, Plus } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
+import { Bell, Plus } from "lucide-react"
+import { useState } from "react"
 import { RoleGate } from "@/components/common/role-gate"
 import { EmptyState } from "@/components/states/empty-state"
 import { QueryBoundary } from "@/components/states/query-boundary"
@@ -16,7 +16,7 @@ export function ChannelList() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="font-heading text-base font-medium">Channels</h2>
+        <h2 className="font-heading font-medium text-base">Channels</h2>
         <RoleGate capability="manageNotifications">
           <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
             <Plus />

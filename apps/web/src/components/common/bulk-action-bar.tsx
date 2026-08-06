@@ -17,8 +17,8 @@ export function BulkActionBar({
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center">
-      <div className="pointer-events-auto flex items-center gap-3 rounded-lg border bg-popover px-4 py-2.5 text-sm text-popover-foreground shadow-lg">
-        <span className="font-heading text-xs text-muted-foreground">
+      <div className="pointer-events-auto flex items-center gap-3 rounded-lg border bg-popover px-4 py-2.5 text-popover-foreground text-sm shadow-lg">
+        <span className="font-heading text-muted-foreground text-xs">
           {count} selected
         </span>
         <span className="text-muted-foreground">·</span>

@@ -1,15 +1,15 @@
-import { useState } from "react"
-import { Mail, MessageSquare, Pencil, Trash2 } from "lucide-react"
-import { toast } from "@workspace/ui/components/toast"
 import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { Switch } from "@workspace/ui/components/switch"
+import { toast } from "@workspace/ui/components/toast"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip"
+import { Mail, MessageSquare, Pencil, Trash2 } from "lucide-react"
+import { useState } from "react"
 import { ConfirmDialog } from "@/components/common/confirm-dialog"
 import { RelativeTime } from "@/components/common/relative-time"
 import { RoleGate } from "@/components/common/role-gate"
@@ -56,17 +56,17 @@ export function ChannelCard({ channel }: { channel: ChannelListItem }) {
             <div className="flex items-center gap-2">
               <span className="font-medium">{channel.name}</span>
               {!channel.enabled && (
-                <span className="text-xs text-muted-foreground">disabled</span>
+                <span className="text-muted-foreground text-xs">disabled</span>
               )}
             </div>
-            <p className="truncate font-heading text-xs text-muted-foreground">
+            <p className="truncate font-heading text-muted-foreground text-xs">
               {targetSummary(channel)}
             </p>
             {channel.lastError !== null ? (
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <p className="cursor-default truncate text-xs text-destructive" />
+                    <p className="cursor-default truncate text-destructive text-xs" />
                   }
                 >
                   Last delivery failed
@@ -74,7 +74,7 @@ export function ChannelCard({ channel }: { channel: ChannelListItem }) {
                 <TooltipContent>{channel.lastError}</TooltipContent>
               </Tooltip>
             ) : channel.lastSuccessAt !== null ? (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Last delivered <RelativeTime date={channel.lastSuccessAt} />
               </p>
             ) : null}
@@ -82,8 +82,8 @@ export function ChannelCard({ channel }: { channel: ChannelListItem }) {
               <p
                 className={
                   testResult.ok
-                    ? "text-xs text-severity-low"
-                    : "text-xs text-destructive"
+                    ? "text-severity-low text-xs"
+                    : "text-destructive text-xs"
                 }
               >
                 {testResult.ok

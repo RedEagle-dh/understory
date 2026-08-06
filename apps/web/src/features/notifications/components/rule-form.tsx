@@ -1,5 +1,3 @@
-import { useState } from "react"
-import { Plus } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { Field, FieldDescription } from "@workspace/ui/components/field"
 import {
@@ -10,11 +8,13 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select"
 import { Spinner } from "@workspace/ui/components/spinner"
+import { Plus } from "lucide-react"
+import { useState } from "react"
 import { SeverityBadge } from "@/components/common/severity-badge"
 import type { ChannelListItem, EventType, Severity } from "../api"
 import {
-  EVENT_TYPES,
   EVENT_TYPE_LABELS,
+  EVENT_TYPES,
   SEVERITY_SCOPED_EVENT_TYPES,
   useUpsertRule,
 } from "../api"
@@ -42,7 +42,7 @@ export function RuleForm({ projectId = "", channels }: RuleFormProps) {
 
   if (channels.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-muted-foreground text-sm">
         Add a channel above before creating rules.
       </p>
     )

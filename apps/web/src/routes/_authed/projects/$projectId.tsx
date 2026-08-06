@@ -1,7 +1,7 @@
-import { Link, Outlet, createFileRoute } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import { ExternalLink } from "lucide-react"
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router"
 import { Badge } from "@workspace/ui/components/badge"
+import { ExternalLink } from "lucide-react"
 import { RoleGate } from "@/components/common/role-gate"
 import { ScanNowButton } from "@/components/common/scan-now-button"
 import { ScanStatusPill } from "@/components/common/scan-status-pill"
@@ -35,12 +35,12 @@ function ProjectHeader() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="truncate font-heading text-xl font-semibold tracking-tight">
+              <h1 className="truncate font-heading font-semibold text-xl tracking-tight">
                 {project.name}
               </h1>
               {project.paused && <Badge variant="outline">paused</Badge>}
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
               <a
                 href={`https://github.com/${project.owner}/${project.repo}`}
                 target="_blank"

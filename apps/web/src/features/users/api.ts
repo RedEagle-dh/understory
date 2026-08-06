@@ -3,10 +3,10 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query"
-import { authClient } from "@/lib/auth-client"
 import { ApiError } from "@/lib/api-error"
-import { qk } from "@/lib/query-keys"
+import { authClient } from "@/lib/auth-client"
 import type { Role } from "@/lib/permissions"
+import { qk } from "@/lib/query-keys"
 
 interface AuthClientErrorShape {
   status?: number

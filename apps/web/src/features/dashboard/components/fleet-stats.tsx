@@ -46,13 +46,13 @@ export function FleetStats({ projects }: FleetStatsProps) {
           <CardContent className="gap-0.5">
             <span
               className={cn(
-                "font-heading text-3xl font-semibold tracking-tight",
+                "font-heading font-semibold text-3xl tracking-tight",
                 tile.tint
               )}
             >
               {tile.value}
             </span>
-            <span className="text-xs text-muted-foreground">{tile.label}</span>
+            <span className="text-muted-foreground text-xs">{tile.label}</span>
           </CardContent>
         </Card>
       ))}

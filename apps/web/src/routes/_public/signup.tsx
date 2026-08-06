@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
-import { SignupForm } from "@/features/auth/components/signup-form"
 import { setupStatusQueryOptions } from "@/features/auth/api"
+import { SignupForm } from "@/features/auth/components/signup-form"
 
 export const Route = createFileRoute("/_public/signup")({
   beforeLoad: async ({ context }) => {

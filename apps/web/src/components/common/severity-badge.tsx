@@ -23,14 +23,14 @@ export function SeverityBadge({
 }: SeverityBadgeProps) {
   if (severity === null) {
     return (
-      <span className={cn("text-sm text-muted-foreground", className)}>—</span>
+      <span className={cn("text-muted-foreground text-sm", className)}>—</span>
     )
   }
 
   return (
     <span
       className={cn(
-        "inline-flex h-5 w-fit items-center gap-1 rounded-full px-2 font-heading text-xs font-medium whitespace-nowrap",
+        "inline-flex h-5 w-fit items-center gap-1 whitespace-nowrap rounded-full px-2 font-heading font-medium text-xs",
         CLASSES[severity],
         className
       )}

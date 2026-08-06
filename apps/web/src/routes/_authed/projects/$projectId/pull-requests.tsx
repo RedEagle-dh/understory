@@ -1,8 +1,5 @@
-import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { ChevronLeft, ChevronRight, GitPullRequest } from "lucide-react"
-import { z } from "zod"
 import { Button } from "@workspace/ui/components/button"
 import {
   Select,
@@ -11,13 +8,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select"
+import { ChevronLeft, ChevronRight, GitPullRequest } from "lucide-react"
+import { useMemo } from "react"
+import { z } from "zod"
 import { DataTable } from "@/components/data-table/data-table"
 import { DataTableSkeleton } from "@/components/data-table/data-table-skeleton"
 import { EmptyState } from "@/components/states/empty-state"
 import { PageHeader } from "@/components/states/page-header"
 import { QueryBoundary } from "@/components/states/query-boundary"
-import { buildPrColumns } from "@/features/pull-requests/columns"
 import { type PrState, prsQueryOptions } from "@/features/pull-requests/api"
+import { buildPrColumns } from "@/features/pull-requests/columns"
 
 const PAGE_SIZE = 20
 
@@ -131,7 +131,7 @@ function ProjectPullRequests() {
                   <DataTable columns={columns} data={data.items} />
 
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="font-heading text-xs text-muted-foreground">
+                    <p className="font-heading text-muted-foreground text-xs">
                       {data.total} pull request{data.total === 1 ? "" : "s"}
                     </p>
                     <div className="flex items-center gap-1">
@@ -144,7 +144,7 @@ function ProjectPullRequests() {
                       >
                         <ChevronLeft />
                       </Button>
-                      <span className="w-16 text-center font-heading text-xs text-muted-foreground">
+                      <span className="w-16 text-center font-heading text-muted-foreground text-xs">
                         {search.page} / {pageCount}
                       </span>
                       <Button

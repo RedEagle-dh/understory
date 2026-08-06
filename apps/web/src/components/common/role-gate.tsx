@@ -3,8 +3,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip"
-import type { Capability } from "@/lib/permissions"
 import { usePermissions } from "@/features/auth/use-permissions"
+import type { Capability } from "@/lib/permissions"
 
 interface RoleGateProps {
   capability: Capability

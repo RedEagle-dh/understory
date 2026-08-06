@@ -1,5 +1,4 @@
 import { useForm } from "@tanstack/react-form"
-import { toast } from "@workspace/ui/components/toast"
 import { Button } from "@workspace/ui/components/button"
 import {
   Card,
@@ -24,6 +23,7 @@ import {
 } from "@workspace/ui/components/select"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { Switch } from "@workspace/ui/components/switch"
+import { toast } from "@workspace/ui/components/toast"
 import type { ProjectDetail } from "@/features/projects/api"
 import { useProjectUpdate } from "@/features/projects/api"
 
@@ -173,7 +173,7 @@ export function AutoBumpCard({ project }: { project: ProjectDetail }) {
                                   field.handleChange(event.target.value)
                                 }
                               />
-                              <span className="text-sm text-muted-foreground">
+                              <span className="text-muted-foreground text-sm">
                                 days
                               </span>
                             </div>
@@ -193,7 +193,7 @@ export function AutoBumpCard({ project }: { project: ProjectDetail }) {
                                   field.handleChange(event.target.value)
                                 }
                               />
-                              <span className="text-sm text-muted-foreground">
+                              <span className="text-muted-foreground text-sm">
                                 hours
                               </span>
                             </div>

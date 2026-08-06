@@ -1,5 +1,3 @@
-import { useMemo } from "react"
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import {
   Card,
   CardContent,
@@ -8,13 +6,15 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card"
 import {
+  type ChartConfig,
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
 } from "@workspace/ui/components/chart"
+import { useMemo } from "react"
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import type { TrendPoint } from "@/features/dashboard/api"
 
 /**
@@ -152,7 +152,7 @@ export function VulnTrendChart({ trend }: { trend: TrendPoint[] }) {
             </AreaChart>
           </ChartContainer>
         ) : (
-          <p className="py-12 text-center text-sm text-muted-foreground">
+          <p className="py-12 text-center text-muted-foreground text-sm">
             No scan history yet — the trend fills in as scans run.
           </p>
         )}

@@ -10,7 +10,9 @@ import { ApiError } from "./api-error"
 declare module "@tanstack/react-query" {
   interface Register {
     mutationMeta: {
-      toast?: (error: unknown) => { title: string; description?: string } | undefined
+      toast?: (
+        error: unknown
+      ) => { title: string; description?: string } | undefined
     }
   }
 }

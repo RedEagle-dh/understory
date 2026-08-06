@@ -1,15 +1,18 @@
-import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { ChevronLeft, ChevronRight, SearchX, ShieldCheck } from "lucide-react"
-import { z } from "zod"
 import { Button } from "@workspace/ui/components/button"
+import { ChevronLeft, ChevronRight, SearchX, ShieldCheck } from "lucide-react"
+import { useEffect, useState } from "react"
+import { z } from "zod"
 import { DataTableSkeleton } from "@/components/data-table/data-table-skeleton"
 import { EmptyState } from "@/components/states/empty-state"
 import { PageHeader } from "@/components/states/page-header"
 import { QueryBoundary } from "@/components/states/query-boundary"
 import { projectQueryOptions } from "@/features/projects/api"
-import { summaryQueryOptions, vulnsQueryOptions } from "@/features/vulnerabilities/api"
+import {
+  summaryQueryOptions,
+  vulnsQueryOptions,
+} from "@/features/vulnerabilities/api"
 import { AdvisoryList } from "@/features/vulnerabilities/components/advisory-list"
 import { FindingDetailSheet } from "@/features/vulnerabilities/components/finding-detail-sheet"
 import { SeveritySummaryStrip } from "@/features/vulnerabilities/components/severity-summary-strip"
@@ -40,7 +43,9 @@ function ProjectVulnerabilities() {
   const { projectId } = Route.useParams()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
-  const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null)
+  const [selectedFindingId, setSelectedFindingId] = useState<string | null>(
+    null
+  )
 
   // The detail sheet is local UI state, not a search param — close it
   // whenever the project itself changes out from under it.
@@ -168,7 +173,7 @@ function ProjectVulnerabilities() {
                   />
 
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="font-heading text-xs text-muted-foreground">
+                    <p className="font-heading text-muted-foreground text-xs">
                       {data.total} finding{data.total === 1 ? "" : "s"}
                     </p>
                     <div className="flex items-center gap-1">
@@ -181,7 +186,7 @@ function ProjectVulnerabilities() {
                       >
                         <ChevronLeft />
                       </Button>
-                      <span className="w-16 text-center font-heading text-xs text-muted-foreground">
+                      <span className="w-16 text-center font-heading text-muted-foreground text-xs">
                         {search.page} / {pageCount}
                       </span>
                       <Button

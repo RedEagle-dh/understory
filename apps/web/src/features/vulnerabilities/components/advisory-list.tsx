@@ -1,8 +1,8 @@
-import { useState } from "react"
-import { ExternalLink } from "lucide-react"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
+import { ExternalLink } from "lucide-react"
+import { useState } from "react"
 import { CopyButton } from "@/components/common/copy-button"
 import { DepTypeBadge } from "@/components/common/dep-type-badge"
 import { FixAvailability } from "@/components/common/fix-availability"
@@ -120,12 +120,12 @@ function AdvisoryCard({
           )}
         </div>
         {group.advisoryCvssScore !== null && (
-          <span className="shrink-0 font-heading text-xs text-muted-foreground">
+          <span className="shrink-0 font-heading text-muted-foreground text-xs">
             CVSS {group.advisoryCvssScore.toFixed(1)}
           </span>
         )}
       </div>
-      <p className="px-3 pt-2.5 text-sm text-muted-foreground">
+      <p className="px-3 pt-2.5 text-muted-foreground text-sm">
         {group.advisorySummary}
       </p>
       <div className="mt-2 divide-y">
@@ -178,7 +178,7 @@ function FindingRow({
         </Badge>
       )}
       <DepTypeBadge depType={finding.depType} />
-      <span className="text-xs text-muted-foreground">
+      <span className="text-muted-foreground text-xs">
         {finding.isDirect ? "direct" : "transitive"}
       </span>
       <FixAvailability
@@ -187,7 +187,7 @@ function FindingRow({
         fixWithinRange={finding.fixWithinRange}
       />
       {state === "ignored" && (
-        <span className="w-full text-xs text-muted-foreground">
+        <span className="w-full text-muted-foreground text-xs">
           Ignored: {finding.ignoreReason}
           {finding.ignoreUntil !== null &&
             ` · until ${formatAbsoluteDate(finding.ignoreUntil)}`}

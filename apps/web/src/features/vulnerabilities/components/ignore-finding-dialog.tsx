@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { Button } from "@workspace/ui/components/button"
 import {
   Dialog,
@@ -13,6 +12,7 @@ import { Field, FieldLabel } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { Textarea } from "@workspace/ui/components/textarea"
+import { useState } from "react"
 import { useIgnoreFinding } from "../api"
 
 interface IgnoreFindingDialogProps {
@@ -62,8 +62,9 @@ export function IgnoreFindingDialog({
           <DialogHeader>
             <DialogTitle>Ignore finding</DialogTitle>
             <DialogDescription>
-              Mute this finding for <span className="font-heading">{packageName}</span> until
-              you resolve or revisit it.
+              Mute this finding for{" "}
+              <span className="font-heading">{packageName}</span> until you
+              resolve or revisit it.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4 py-4">
@@ -79,7 +80,9 @@ export function IgnoreFindingDialog({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="ignore-until">Ignore until (optional)</FieldLabel>
+              <FieldLabel htmlFor="ignore-until">
+                Ignore until (optional)
+              </FieldLabel>
               <Input
                 id="ignore-until"
                 type="date"

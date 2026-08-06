@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react"
-import { X } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
+import { X } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface DataTableToolbarProps {
   searchValue: string

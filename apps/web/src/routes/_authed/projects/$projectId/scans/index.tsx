@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { Button } from "@workspace/ui/components/button"
 import { ChevronLeft, ChevronRight, ScanSearch } from "lucide-react"
 import { z } from "zod"
-import { Button } from "@workspace/ui/components/button"
 import { ScanNowButton } from "@/components/common/scan-now-button"
 import { DataTable } from "@/components/data-table/data-table"
 import { DataTableSkeleton } from "@/components/data-table/data-table-skeleton"
@@ -67,7 +67,7 @@ function ProjectScans() {
                 }
               />
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="font-heading text-xs text-muted-foreground">
+                <p className="font-heading text-muted-foreground text-xs">
                   {data.total} scan{data.total === 1 ? "" : "s"}
                 </p>
                 <div className="flex items-center gap-1">
@@ -85,7 +85,7 @@ function ProjectScans() {
                   >
                     <ChevronLeft />
                   </Button>
-                  <span className="w-16 text-center font-heading text-xs text-muted-foreground">
+                  <span className="w-16 text-center font-heading text-muted-foreground text-xs">
                     {search.page} / {pageCount}
                   </span>
                   <Button

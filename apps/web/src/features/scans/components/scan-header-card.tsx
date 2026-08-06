@@ -1,11 +1,11 @@
-import { ExternalLink } from "lucide-react"
 import { Badge } from "@workspace/ui/components/badge"
 import { Card, CardContent, CardHeader } from "@workspace/ui/components/card"
+import { ExternalLink } from "lucide-react"
 import { RelativeTime } from "@/components/common/relative-time"
 import { ScanStatusPill } from "@/components/common/scan-status-pill"
 import { SeverityBar } from "@/components/common/severity-bar"
 import type { ScanDetail } from "../api"
-import { TRIGGER_LABEL, TRIGGER_VARIANT, formatDuration } from "../lib"
+import { formatDuration, TRIGGER_LABEL, TRIGGER_VARIANT } from "../lib"
 
 interface ScanHeaderCardProps {
   scan: ScanDetail
@@ -16,8 +16,8 @@ interface ScanHeaderCardProps {
 function Counter({ label, value }: { label: string; value: number | null }) {
   return (
     <div>
-      <p className="font-heading text-lg font-medium">{value ?? "—"}</p>
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="font-heading font-medium text-lg">{value ?? "—"}</p>
+      <p className="text-muted-foreground text-xs">{label}</p>
     </div>
   )
 }
@@ -35,11 +35,14 @@ export function ScanHeaderCard({ scan, owner, repo }: ScanHeaderCardProps) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <ScanStatusPill scan={scan} />
-            <Badge variant={TRIGGER_VARIANT[scan.trigger]} className="font-heading">
+            <Badge
+              variant={TRIGGER_VARIANT[scan.trigger]}
+              className="font-heading"
+            >
               {TRIGGER_LABEL[scan.trigger]}
             </Badge>
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-3 text-muted-foreground text-xs">
             <span>
               Started <RelativeTime date={scan.startedAt} />
             </span>
@@ -48,12 +51,14 @@ export function ScanHeaderCard({ scan, owner, repo }: ScanHeaderCardProps) {
                 Finished <RelativeTime date={scan.finishedAt} />
               </span>
             )}
-            <span className="font-heading">{formatDuration(scan.durationMs)}</span>
+            <span className="font-heading">
+              {formatDuration(scan.durationMs)}
+            </span>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
           {scan.commitSha !== null &&
             (commitHref !== null ? (
               <a

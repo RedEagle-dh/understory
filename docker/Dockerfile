@@ -1,24 +1,24 @@
-# ── deps: install the full workspace once ───────────────────────────────────
-FROM oven/bun:1.3-slim AS deps
+# ── pruner: compute per-app subsets of the workspace ────────────────────────
+FROM oven/bun:1.3-slim AS pruner
 WORKDIR /app
-COPY package.json bun.lock ./
-COPY apps/api/package.json apps/api/
-COPY apps/web/package.json apps/web/
-COPY packages/ui/package.json packages/ui/
-COPY packages/db/package.json packages/db/
-COPY packages/audit-engine/package.json packages/audit-engine/
-COPY packages/declarative/core/package.json packages/declarative/core/
-COPY packages/declarative/logger/package.json packages/declarative/logger/
-COPY packages/declarative/cli/package.json packages/declarative/cli/
-COPY packages/declarative/modules/observability/package.json packages/declarative/modules/observability/
-COPY packages/declarative/modules/rate-limit/package.json packages/declarative/modules/rate-limit/
-COPY packages/declarative/modules/cache/package.json packages/declarative/modules/cache/
-RUN bun install --frozen-lockfile
+COPY . .
+# Keep the turbo version in sync with the root package.json catalog.
+RUN bunx turbo@2.10.8 prune @workspace/api --docker --out-dir out/api \
+	&& bunx turbo@2.10.8 prune web --docker --out-dir out/web
 
 # ── web-build: static SPA bundle ────────────────────────────────────────────
-FROM deps AS web-build
-COPY . .
+FROM oven/bun:1.3-slim AS web-build
+WORKDIR /app
+COPY --from=pruner /app/out/web/json/ ./
+RUN bun install --frozen-lockfile
+COPY --from=pruner /app/out/web/full/ ./
 RUN bun run --filter web build
+
+# ── api-deps: install only what the api (and its workspace deps) need ───────
+FROM oven/bun:1.3-slim AS api-deps
+WORKDIR /app
+COPY --from=pruner /app/out/api/json/ ./
+RUN bun install --frozen-lockfile
 
 # ── runtime ─────────────────────────────────────────────────────────────────
 FROM oven/bun:1.3-slim AS runtime
@@ -30,13 +30,14 @@ RUN apt-get update \
 	&& apt-get install -y --no-install-recommends nodejs npm ca-certificates \
 	&& rm -rf /var/lib/apt/lists/*
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json bun.lock tsconfig.base.json ./
-COPY apps/api ./apps/api
-COPY packages/db ./packages/db
-COPY packages/audit-engine ./packages/audit-engine
-COPY packages/declarative ./packages/declarative
+# The whole installed tree, not just the root node_modules: bun's isolated
+# layout gives every workspace package its own node_modules of symlinks.
+COPY --from=api-deps /app ./
+COPY --from=pruner /app/out/api/full/ ./
+# Shared tsconfig bases live outside any workspace package, so prune skips them.
+COPY tsconfig.base.json ./tsconfig.base.json
 COPY packages/tsconfig.base.json ./packages/tsconfig.base.json
+COPY packages/declarative/tsconfig.base.json ./packages/declarative/tsconfig.base.json
 COPY docker/entrypoint.sh /app/docker/entrypoint.sh
 COPY --from=web-build /app/apps/web/dist/client ./web
 

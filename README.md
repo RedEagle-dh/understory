@@ -5,6 +5,7 @@
 
 **Self-hosted npm dependency auditing — see what lives under your dependency tree.**
 
+[![CI](https://github.com/RedEagle-dh/understory/actions/workflows/ci.yml/badge.svg)](https://github.com/RedEagle-dh/understory/actions/workflows/ci.yml)
 [![Bun](https://img.shields.io/badge/bun-%E2%89%A51.3-black?logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/typescript-7-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -34,14 +35,39 @@ Everything runs in a single container with a single SQLite file. No SaaS, no age
 
 ## Quickstart
 
+No clone required — create a `docker-compose.yml`:
+
+```yaml
+services:
+  understory:
+    image: ghcr.io/redeagle-dh/understory:latest
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - understory-data:/data
+    environment:
+      APP_URL: http://localhost:3001
+      TRUSTED_ORIGINS: http://localhost:3001
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?generate with openssl rand -base64 32}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?generate with openssl rand -base64 32}
+      # GITHUB_TOKEN: ghp_…   # optional fallback token for private repos / rate limits
+
+volumes:
+  understory-data:
+```
+
+Then start it:
+
 ```sh
-git clone https://github.com/OWNER/understory && cd understory/docker
 export APP_ENCRYPTION_KEY=$(openssl rand -base64 32)
 export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 docker compose up -d
 ```
 
-Open http://localhost:3001 and create your account.
+Open http://localhost:3001 and create your account. The image is published for **amd64 and arm64**, so this works on x86 servers and ARM boxes (Raspberry Pi, Apple Silicon, Graviton) alike.
+
+To build from source instead, clone the repo and use [`docker/docker-compose.yml`](docker/docker-compose.yml) with `docker compose up -d --build`.
 
 > [!NOTE]
 > The **first account to sign up becomes the administrator**, after which public registration closes. Admins create further users from Settings → Users.
@@ -49,7 +75,7 @@ Open http://localhost:3001 and create your account.
 Add a repository (owner + repo; a token is only needed for private repos or to avoid anonymous rate limits) and the first scan starts immediately. Hourly scans, notifications, and automatic PRs take it from there.
 
 > [!IMPORTANT]
-> Keep `APP_ENCRYPTION_KEY` safe. Sealed secrets in the database are unrecoverable without it. Back up the SQLite file WAL-safely with `sqlite3 /data/app.db ".backup /data/backup.db"`.
+> Persist the two keys in an `.env` file next to your `docker-compose.yml` (Compose reads it automatically) instead of re-exporting them per shell — `APP_ENCRYPTION_KEY` seals tokens in the database, and a regenerated key makes them unrecoverable. Back up the SQLite file WAL-safely with `sqlite3 /data/app.db ".backup /data/backup.db"`.
 
 ## Configuration
 

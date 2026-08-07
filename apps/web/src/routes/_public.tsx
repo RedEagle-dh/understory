@@ -24,7 +24,7 @@ function PublicLayout() {
         <Outlet />
       </div>
       <p className="font-heading text-muted-foreground text-xs">
-        self-hosted npm dependency auditing
+        self-hosted dependency auditing for npm &amp; PyPI
       </p>
     </main>
   )

@@ -162,14 +162,12 @@ describe('a full project -> scan -> dependencySet -> finding chain', () => {
 		});
 
 		const advisoryId = 'GHSA-cascade-0000';
-		await db
-			.insert(advisories)
-			.values({
-				id: advisoryId,
-				summary: 'x',
-				severity: 'low',
-				updatedAt: now,
-			});
+		await db.insert(advisories).values({
+			id: advisoryId,
+			summary: 'x',
+			severity: 'low',
+			updatedAt: now,
+		});
 
 		const findingId = id();
 		await db.insert(findings).values({
@@ -260,19 +258,26 @@ describe('unique indexes reject duplicates', () => {
 			updatedAt: now,
 		});
 		const scanId = id();
-		await db
-			.insert(scans)
-			.values({
-				id: scanId,
-				projectId,
-				trigger: 'manual',
-				status: 'ok',
-				startedAt: now,
-			});
+		await db.insert(scans).values({
+			id: scanId,
+			projectId,
+			trigger: 'manual',
+			status: 'ok',
+			startedAt: now,
+		});
 
-		await db
-			.insert(dependencySets)
-			.values({
+		await db.insert(dependencySets).values({
+			id: id(),
+			projectId,
+			lockHash: 'same-hash',
+			manager: 'bun',
+			packageCount: 0,
+			directCount: 0,
+			createdAt: now,
+			firstScanId: scanId,
+		});
+		await expectRejects(
+			db.insert(dependencySets).values({
 				id: id(),
 				projectId,
 				lockHash: 'same-hash',
@@ -281,20 +286,7 @@ describe('unique indexes reject duplicates', () => {
 				directCount: 0,
 				createdAt: now,
 				firstScanId: scanId,
-			});
-		await expectRejects(
-			db
-				.insert(dependencySets)
-				.values({
-					id: id(),
-					projectId,
-					lockHash: 'same-hash',
-					manager: 'bun',
-					packageCount: 0,
-					directCount: 0,
-					createdAt: now,
-					firstScanId: scanId,
-				})
+			})
 		);
 	});
 
@@ -312,24 +304,20 @@ describe('unique indexes reject duplicates', () => {
 			updatedAt: now,
 		});
 		const scanId = id();
-		await db
-			.insert(scans)
-			.values({
-				id: scanId,
-				projectId,
-				trigger: 'manual',
-				status: 'ok',
-				startedAt: now,
-			});
+		await db.insert(scans).values({
+			id: scanId,
+			projectId,
+			trigger: 'manual',
+			status: 'ok',
+			startedAt: now,
+		});
 		const advisoryId = 'GHSA-dup-0000';
-		await db
-			.insert(advisories)
-			.values({
-				id: advisoryId,
-				summary: 'x',
-				severity: 'low',
-				updatedAt: now,
-			});
+		await db.insert(advisories).values({
+			id: advisoryId,
+			summary: 'x',
+			severity: 'low',
+			updatedAt: now,
+		});
 
 		const findingValues = {
 			projectId,

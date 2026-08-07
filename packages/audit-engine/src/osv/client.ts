@@ -25,6 +25,8 @@ export class OsvError extends Error {
 export interface OsvPackageVersion {
 	name: string;
 	version: string;
+	/** OSV ecosystem for this query; falls back to the client default. */
+	ecosystem?: string;
 }
 
 export interface OsvClientOptions {
@@ -33,6 +35,8 @@ export interface OsvClientOptions {
 	/** Queries per `/v1/querybatch` request. Default 250. */
 	chunkSize?: number;
 	headers?: Record<string, string>;
+	/** OSV ecosystem for pairs that carry none. Default `npm`. */
+	ecosystem?: string;
 }
 
 export interface OsvClient {
@@ -62,6 +66,7 @@ export function createOsvClient(options: OsvClientOptions): OsvClient {
 		baseUrl = DEFAULT_OSV_URL,
 		chunkSize = OSV_BATCH_CHUNK_SIZE,
 		headers: extraHeaders,
+		ecosystem: defaultEcosystem = 'npm',
 	} = options;
 	const base = baseUrl.replace(/\/$/, '');
 
@@ -81,7 +86,10 @@ export function createOsvClient(options: OsvClientOptions): OsvClient {
 					},
 					body: JSON.stringify({
 						queries: group.map((pair) => ({
-							package: { name: pair.name, ecosystem: 'npm' },
+							package: {
+								name: pair.name,
+								ecosystem: pair.ecosystem ?? defaultEcosystem,
+							},
 							version: pair.version,
 						})),
 					}),

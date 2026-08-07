@@ -27,8 +27,9 @@ export interface LockfileRegenFile {
 export interface LockfileRegenInput {
 	manager: PackageManager;
 	/**
-	 * Every package.json in the repository, already carrying the PR's edits,
-	 * at repository-relative paths. The shallowest one is the install root.
+	 * Every manifest of the manager's ecosystem (package.json / pyproject.toml)
+	 * in the repository, already carrying the PR's edits, at
+	 * repository-relative paths. The shallowest one is the install root.
 	 */
 	manifests: readonly LockfileRegenFile[];
 	lockfile: LockfileRegenFile;
@@ -52,8 +53,8 @@ const DEFAULT_TIMEOUT_MS = 120_000;
 /**
  * `install` refreshes the lockfile against changed manifests but deliberately
  * KEEPS every already-locked version that still satisfies its range, so it can
- * never realise an in-range bump. `update <name...>` is the only command in
- * either manager that forces one.
+ * never realise an in-range bump. `update <name...>` (or uv's
+ * `--upgrade-package`) is the only command in each manager that forces one.
  */
 const INSTALL_COMMANDS: Partial<Record<PackageManager, string[]>> = {
 	npm: [
@@ -66,6 +67,8 @@ const INSTALL_COMMANDS: Partial<Record<PackageManager, string[]>> = {
 		'--loglevel=error',
 	],
 	bun: ['bun', 'install', '--lockfile-only', '--ignore-scripts'],
+	uv: ['uv', 'lock'],
+	poetry: ['poetry', 'lock'],
 };
 
 const UPDATE_COMMANDS: Partial<Record<PackageManager, string[]>> = {
@@ -79,6 +82,23 @@ const UPDATE_COMMANDS: Partial<Record<PackageManager, string[]>> = {
 		'--loglevel=error',
 	],
 	bun: ['bun', 'update', '--lockfile-only', '--ignore-scripts'],
+	uv: ['uv', 'lock'],
+	poetry: ['poetry', 'update', '--lock'],
+};
+
+/** How a manager wants its update targets spelled on the command line. */
+const TARGET_ARGS: Partial<
+	Record<PackageManager, (names: readonly string[]) => string[]>
+> = {
+	uv: (names) => names.flatMap((name) => ['--upgrade-package', name]),
+};
+
+/** The manifest file a manager's resolver reads. */
+const MANIFEST_BASENAMES: Partial<Record<PackageManager, string>> = {
+	npm: 'package.json',
+	bun: 'package.json',
+	uv: 'pyproject.toml',
+	poetry: 'pyproject.toml',
 };
 
 /** `a/b/c` → rejects anything that could escape the sandbox. */
@@ -94,14 +114,14 @@ function pathDepth(path: string): number {
 	return path.split('/').length;
 }
 
-/** The shallowest, lexicographically-first package.json — the install root. */
+/** The shallowest, lexicographically-first manifest — the install root. */
 function findRoot(
-	manifests: readonly LockfileRegenFile[]
+	manifests: readonly LockfileRegenFile[],
+	basename: string
 ): LockfileRegenFile | undefined {
 	let best: LockfileRegenFile | undefined;
 	for (const manifest of manifests) {
-		if ((manifest.path.split('/').at(-1) ?? '') !== 'package.json')
-			continue;
+		if ((manifest.path.split('/').at(-1) ?? '') !== basename) continue;
 		if (
 			best === undefined ||
 			pathDepth(manifest.path) < pathDepth(best.path) ||
@@ -135,7 +155,12 @@ export async function regenerateLockfile(
 ): Promise<LockfileRegenResult> {
 	const installCommand = INSTALL_COMMANDS[input.manager];
 	const updateCommand = UPDATE_COMMANDS[input.manager];
-	if (installCommand === undefined || updateCommand === undefined) {
+	const manifestBasename = MANIFEST_BASENAMES[input.manager];
+	if (
+		installCommand === undefined ||
+		updateCommand === undefined ||
+		manifestBasename === undefined
+	) {
 		return {
 			ok: false,
 			reason: `lockfile regeneration is not supported for ${input.manager}`,
@@ -143,11 +168,15 @@ export async function regenerateLockfile(
 	}
 
 	const manifests = input.manifests.filter(
-		(manifest) => (manifest.path.split('/').at(-1) ?? '') === 'package.json'
+		(manifest) =>
+			(manifest.path.split('/').at(-1) ?? '') === manifestBasename
 	);
-	const root = findRoot(manifests);
+	const root = findRoot(manifests, manifestBasename);
 	if (root === undefined) {
-		return { ok: false, reason: 'no root package.json in the change set' };
+		return {
+			ok: false,
+			reason: `no root ${manifestBasename} in the change set`,
+		};
 	}
 
 	const materialised = [...manifests, input.lockfile];
@@ -184,6 +213,8 @@ export async function regenerateLockfile(
 			HOME: directory,
 			NPM_CONFIG_CACHE: join(directory, '.npm-cache'),
 			NPM_CONFIG_UPDATE_NOTIFIER: 'false',
+			UV_CACHE_DIR: join(directory, '.uv-cache'),
+			POETRY_CACHE_DIR: join(directory, '.poetry-cache'),
 			...(process.env.npm_config_registry === undefined
 				? {}
 				: { npm_config_registry: process.env.npm_config_registry }),
@@ -244,7 +275,10 @@ export async function regenerateLockfile(
 		}
 
 		if (targets.length > 0) {
-			const updated = await run([...updateCommand, ...targets]);
+			const targetArgs = TARGET_ARGS[input.manager]?.(targets) ?? [
+				...targets,
+			];
+			const updated = await run([...updateCommand, ...targetArgs]);
 			if (!updated.ok) {
 				return {
 					ok: false,
@@ -280,11 +314,15 @@ export async function regenerateLockfile(
 			};
 		}
 		if (content === input.lockfile.content) {
+			const pinnedHint =
+				input.manager === 'uv' || input.manager === 'poetry'
+					? 'the targets may already be at the highest versions their constraints allow — a requires-python floor can keep an older fork of a package locked'
+					: 'targets may be pinned by catalog: or exact versions';
 			return {
 				ok: false,
 				reason:
 					targets.length > 0
-						? 'update produced no lockfile change (targets may be pinned by catalog: or exact versions)'
+						? `update produced no lockfile change (${pinnedHint})`
 						: 'the lockfile did not change',
 			};
 		}

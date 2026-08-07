@@ -19,6 +19,7 @@ import { createMemoryRateLimiter } from '@declarativejs/module-rate-limit';
 import {
 	createNpmClient,
 	createOsvClient,
+	createPypiClient,
 	type OsvClient,
 } from '@workspace/audit-engine';
 import {
@@ -53,13 +54,13 @@ import type { AutoPrPort, ScanNotifierPort } from './services/ports';
 import { createPrService, type PrService } from './services/pr-service';
 import { createScanService, type ScanService } from './services/scan-service';
 import {
-	createUpdateCheckService,
-	type UpdateCheckService,
-} from './services/update-check-service';
-import {
 	createSchedulerService,
 	type SchedulerService,
 } from './services/scheduler-service';
+import {
+	createUpdateCheckService,
+	type UpdateCheckService,
+} from './services/update-check-service';
 import {
 	type AdvisoriesStore,
 	createAdvisoriesStore,
@@ -187,6 +188,11 @@ const npmClient = createNpmClient({
 	registryUrl: env.NPM_REGISTRY_URL,
 });
 const osvClient = createOsvClient({ fetch, baseUrl: env.OSV_API_URL });
+const pypiClient = createPypiClient({
+	fetch,
+	cache: registryCachePort,
+	baseUrl: env.PYPI_REGISTRY_URL,
+});
 
 export interface GithubAccess {
 	/** Client + reader bound to an explicit token (or the global fallback). */
@@ -311,6 +317,7 @@ export function createEnvironment(input: EnvironmentInput): AppEnv {
 		settings: stores.settings,
 		registryCache: stores.registryCache,
 		npm: npmClient,
+		pypi: pypiClient,
 		osv: osvClient,
 		secretBox,
 		projectTokenAad,

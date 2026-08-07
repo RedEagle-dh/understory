@@ -6,8 +6,10 @@ import type { DepType, UpdateKind } from "../api"
 /** Matches the dependencies route's search schema field names exactly. */
 export interface DependenciesFilterPatch {
   q?: string
-  type?: DepType
-  updateKind?: UpdateKind
+  /** `[]` = show all types (distinct from absent, which applies the default). */
+  type?: DepType[]
+  updateKind?: UpdateKind[]
+  /** Explicit boolean: `false` = include transitive (absent = default true). */
   direct?: boolean
   hasVuln?: boolean
 }
@@ -29,18 +31,21 @@ const UPDATE_KIND_OPTIONS = [
 
 interface DependenciesToolbarProps {
   q: string
-  depType?: DepType
-  updateKind?: UpdateKind
-  direct?: boolean
+  /** Effective selection, defaults already applied by the route. */
+  depType: DepType[]
+  updateKind: UpdateKind[]
+  direct: boolean
   hasVuln?: boolean
+  /** Deviations from the DEFAULT view, computed by the route. */
+  activeFilterCount: number
   onChange: (patch: DependenciesFilterPatch) => void
   onReset: () => void
 }
 
 /**
  * Search + faceted filters for the dependencies table. Type and update-kind
- * are single-select facets — the API only accepts one value for each — so
- * `DataTableFacetedFilter` is used with `multiple={false}`.
+ * are multi-select facets (several values combine as OR); clearing every type
+ * shows all of them. "Reset" returns to the default view: direct prod+dev.
  */
 export function DependenciesToolbar({
   q,
@@ -48,16 +53,10 @@ export function DependenciesToolbar({
   updateKind,
   direct,
   hasVuln,
+  activeFilterCount,
   onChange,
   onReset,
 }: DependenciesToolbarProps) {
-  const activeFilterCount =
-    (depType !== undefined ? 1 : 0) +
-    (updateKind !== undefined ? 1 : 0) +
-    (direct === true ? 1 : 0) +
-    (hasVuln === true ? 1 : 0) +
-    (q !== "" ? 1 : 0)
-
   return (
     <DataTableToolbar
       searchValue={q}
@@ -72,24 +71,25 @@ export function DependenciesToolbar({
           <DataTableFacetedFilter
             title="Type"
             options={DEP_TYPE_OPTIONS}
-            multiple={false}
-            selected={depType !== undefined ? new Set([depType]) : new Set()}
-            onChange={(selected) => {
-              const [value] = selected
-              onChange({ type: value as DepType | undefined })
-            }}
+            multiple={true}
+            selected={new Set(depType)}
+            onChange={(selected) =>
+              onChange({ type: [...selected] as DepType[] })
+            }
           />
           <DataTableFacetedFilter
             title="Update"
             options={UPDATE_KIND_OPTIONS}
-            multiple={false}
-            selected={
-              updateKind !== undefined ? new Set([updateKind]) : new Set()
+            multiple={true}
+            selected={new Set(updateKind)}
+            onChange={(selected) =>
+              onChange({
+                updateKind:
+                  selected.size === 0
+                    ? undefined
+                    : ([...selected] as UpdateKind[]),
+              })
             }
-            onChange={(selected) => {
-              const [value] = selected
-              onChange({ updateKind: value as UpdateKind | undefined })
-            }}
           />
           <Toggle
             variant="outline"
@@ -104,10 +104,8 @@ export function DependenciesToolbar({
           <Toggle
             variant="outline"
             size="sm"
-            pressed={direct === true}
-            onPressedChange={(pressed) =>
-              onChange({ direct: pressed ? true : undefined })
-            }
+            pressed={direct}
+            onPressedChange={(pressed) => onChange({ direct: pressed })}
           >
             Direct only
           </Toggle>

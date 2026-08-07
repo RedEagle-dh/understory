@@ -5,19 +5,20 @@ import {
 	computeFix,
 	computeOutdated,
 	type DependencyGraph,
-	type DistTags,
+	detectEcosystems,
+	type EcosystemPort,
+	ecosystemFor,
 	mergeAdvisories,
 	type NormalizedAdvisory,
 	type NpmClient,
 	normalizeNpmBulkResponse,
 	normalizeOsvVuln,
+	npmEcosystem,
 	type OsvClient,
-	type Packument,
 	type ParsedDependency,
 	type PeerRequirement,
-	parseLockfile,
+	type PypiClient,
 	type Severity,
-	satisfiesRange,
 } from '@workspace/audit-engine';
 import type { SecretBox } from '@workspace/db/crypto';
 import { createGithubClient, GithubHttpError } from '../adapters/github/client';
@@ -93,6 +94,7 @@ export interface ScanServiceDeps {
 	settings: SettingsStore;
 	registryCache: RegistryCacheStore;
 	npm: NpmClient;
+	pypi: PypiClient;
 	osv: OsvClient;
 	secretBox: SecretBox;
 	projectTokenAad: (projectId: string) => string;
@@ -261,8 +263,67 @@ function parsePeerDeps(
 	}
 }
 
+/**
+ * Per-ecosystem view of a registry, reduced to what the outdated and fix
+ * passes actually consume. npm answers from packuments and dist-tags; PyPI
+ * answers everything from one cached project document.
+ */
+interface ReleaseSummary {
+	tags: { latest?: string };
+	versions: { version: string; deprecated?: string }[];
+}
+
+interface RegistryProvider {
+	/** Full release listing — fix computation + outdated for loaded names. */
+	releases(name: string): Promise<ReleaseSummary>;
+	/** Cheap `latest` lookup for names that skip the full listing. */
+	latestTags(name: string): Promise<{ latest?: string }>;
+	/** version → publish ISO time; feeds the auto-bump supply-chain cooldown. */
+	publishTimes(name: string): Promise<Record<string, string>>;
+}
+
+function createNpmProvider(npm: NpmClient): RegistryProvider {
+	return {
+		async releases(name) {
+			const packument = await npm.getPackument(name);
+			return {
+				tags: packument['dist-tags'] ?? {},
+				versions: Object.values(packument.versions).map((version) => ({
+					version: version.version,
+					deprecated: version.deprecated,
+				})),
+			};
+		},
+		latestTags: (name) => npm.getDistTags(name),
+		publishTimes: (name) => npm.getPublishTimes(name),
+	};
+}
+
+function createPypiProvider(pypi: PypiClient): RegistryProvider {
+	const summarize = async (name: string): Promise<ReleaseSummary> => {
+		const project = await pypi.getProject(name);
+		return {
+			tags:
+				project.latest === undefined ? {} : { latest: project.latest },
+			versions: project.releases.map((release) => ({
+				version: release.version,
+				deprecated: release.yanked
+					? (release.yankedReason ?? 'yanked')
+					: undefined,
+			})),
+		};
+	};
+	return {
+		releases: summarize,
+		// Same endpoint; the client's cache makes the second hit free.
+		latestTags: async (name) => (await summarize(name)).tags,
+		publishTimes: (name) => pypi.getPublishTimes(name),
+	};
+}
+
 /** Rebuild the engine's graph shape from stored entries (works when reused). */
 function graphFromEntries(
+	ecosystem: DependencyGraph['ecosystem'],
 	manager: DependencyGraph['manager'],
 	entries: readonly DependencySetEntryRow[]
 ): DependencyGraph {
@@ -278,6 +339,7 @@ function graphFromEntries(
 		resolved: entry.resolved ?? undefined,
 	}));
 	return {
+		ecosystem,
 		manager,
 		workspaces: [
 			...new Set(entries.map((entry) => entry.workspace)),
@@ -317,30 +379,36 @@ export function createScanService(deps: ScanServiceDeps) {
 	/* ---------------------------------------------------------------- */
 
 	async function ingestAdvisories(
+		port: EcosystemPort,
 		nameVersions: Map<string, Set<string>>,
 		skipOsv: boolean,
 		warnings: string[]
 	): Promise<void> {
-		const bulkInput: Record<string, string[]> = {};
-		for (const [name, versions] of nameVersions) {
-			bulkInput[name] = [...versions];
-		}
-
 		let npmAdvisories: NormalizedAdvisory[] = [];
-		try {
-			npmAdvisories = normalizeNpmBulkResponse(
-				await deps.npm.bulkAdvisories(bulkInput)
-			);
-		} catch (error) {
-			// npm's bulk endpoint is the primary source; losing it degrades the
-			// scan but must not lose the outdated/peer passes.
-			warnings.push(`npm bulk advisories failed: ${messageOf(error)}`);
+		// npm's bulk endpoint has no equivalent for other ecosystems — there
+		// OSV (GHSA + PYSEC) is the sole advisory source.
+		if (port.ecosystem === 'npm') {
+			const bulkInput: Record<string, string[]> = {};
+			for (const [name, versions] of nameVersions) {
+				bulkInput[name] = [...versions];
+			}
+			try {
+				npmAdvisories = normalizeNpmBulkResponse(
+					await deps.npm.bulkAdvisories(bulkInput)
+				);
+			} catch (error) {
+				// npm's bulk endpoint is the primary source; losing it degrades
+				// the scan but must not lose the outdated/peer passes.
+				warnings.push(
+					`npm bulk advisories failed: ${messageOf(error)}`
+				);
+			}
 		}
 
 		let osvAdvisories: NormalizedAdvisory[] = [];
 		if (!skipOsv) {
 			try {
-				osvAdvisories = await fetchOsvAdvisories(nameVersions);
+				osvAdvisories = await fetchOsvAdvisories(port, nameVersions);
 			} catch (error) {
 				warnings.push(`OSV lookup failed: ${messageOf(error)}`);
 			}
@@ -351,11 +419,19 @@ export function createScanService(deps: ScanServiceDeps) {
 	}
 
 	async function fetchOsvAdvisories(
+		port: EcosystemPort,
 		nameVersions: Map<string, Set<string>>
 	): Promise<NormalizedAdvisory[]> {
-		const pairs: { name: string; version: string }[] = [];
+		const pairs: { name: string; version: string; ecosystem: string }[] =
+			[];
 		for (const [name, versions] of nameVersions) {
-			for (const version of versions) pairs.push({ name, version });
+			for (const version of versions) {
+				pairs.push({
+					name,
+					version,
+					ecosystem: port.osvEcosystem,
+				});
+			}
 		}
 		if (pairs.length === 0) return [];
 
@@ -396,23 +472,28 @@ export function createScanService(deps: ScanServiceDeps) {
 		);
 		return vulns
 			.filter((vuln) => vuln !== null)
-			.map((vuln) => normalizeOsvVuln(vuln));
+			.map((vuln) =>
+				normalizeOsvVuln(vuln, {
+					ecosystem: port.ecosystem,
+				})
+			);
 	}
 
 	/* ---------------------------------------------------------------- */
 	/* Step 8-10: matching + fix computation                             */
 	/* ---------------------------------------------------------------- */
 
-	async function loadPackuments(
+	async function loadReleases(
+		provider: RegistryProvider,
 		names: readonly string[],
 		warnings: string[]
-	): Promise<Map<string, Packument>> {
-		const out = new Map<string, Packument>();
+	): Promise<Map<string, ReleaseSummary>> {
+		const out = new Map<string, ReleaseSummary>();
 		await mapWithConcurrency(names, REGISTRY_CONCURRENCY, async (name) => {
 			try {
-				out.set(name, await deps.npm.getPackument(name));
+				out.set(name, await provider.releases(name));
 			} catch (error) {
-				warnings.push(`packument ${name}: ${messageOf(error)}`);
+				warnings.push(`releases ${name}: ${messageOf(error)}`);
 			}
 		});
 		return out;
@@ -455,6 +536,19 @@ export function createScanService(deps: ScanServiceDeps) {
 
 		const lockHash = computeLockHash(snapshot.files);
 
+		// One ecosystem per scan: registry order (npm first) breaks ties in
+		// polyglot repositories until multi-set scans land.
+		const present = detectEcosystems(snapshot.files);
+		if (present.length > 1) {
+			warnings.push(
+				`repository contains multiple ecosystems (${present
+					.map((candidate) => candidate.ecosystem)
+					.join(
+						', '
+					)}); scanning ${(present[0] as EcosystemPort).ecosystem} only`
+			);
+		}
+
 		// Reuse whenever a set already exists for this content hash: re-parsing
 		// identical manifests can only produce the identical set, and the
 		// (projectId, lockHash) unique index would reject the duplicate anyway.
@@ -464,8 +558,7 @@ export function createScanService(deps: ScanServiceDeps) {
 		);
 		const depsReused = setRow !== null;
 		if (setRow === null) {
-			const graph = parseLockfile(snapshot.files);
-			warnings.push(...graph.warnings);
+			const graph = (present[0] ?? npmEcosystem).parse(snapshot.files);
 			setRow = await deps.dependencySets.create({
 				projectId: project.id,
 				lockHash,
@@ -474,9 +567,25 @@ export function createScanService(deps: ScanServiceDeps) {
 				firstScanId: scan.id,
 			});
 		}
+		// Parse warnings ride on the SET (parsing only happens at creation) so
+		// a reused scan still reports "no lockfile found" instead of silently
+		// presenting an empty graph as healthy.
+		const setWarnings = parseJsonArray(setRow.warningsJson);
+		if (setWarnings !== null) warnings.push(...setWarnings);
+		// The stored set is authoritative on reuse — identical content implies
+		// identical detection, and this keeps reused scans self-consistent.
+		const port = ecosystemFor(setRow.ecosystem);
+		const provider =
+			port.ecosystem === 'npm'
+				? createNpmProvider(deps.npm)
+				: createPypiProvider(deps.pypi);
 
 		const entries = await deps.dependencySets.entriesForSet(setRow.id);
-		const graph = graphFromEntries(setRow.manager, entries);
+		const graph = graphFromEntries(
+			setRow.ecosystem,
+			setRow.manager,
+			entries
+		);
 
 		const nameVersions = new Map<string, Set<string>>();
 		for (const entry of entries) {
@@ -491,14 +600,16 @@ export function createScanService(deps: ScanServiceDeps) {
 		// A reused dependency set was already queried against OSV on the scan
 		// that created it; only npm's cheap bulk endpoint is re-run hourly.
 		await ingestAdvisories(
+			port,
 			nameVersions,
 			deps.config.disableOsv || depsReused,
 			warnings
 		);
 
-		const rangesByPackage = await deps.advisories.rangesForPackages([
-			...nameVersions.keys(),
-		]);
+		const rangesByPackage = await deps.advisories.rangesForPackages(
+			[...nameVersions.keys()],
+			port.ecosystem
+		);
 
 		// findings are unique per (project, advisory, name, version); keep the
 		// most informative occurrence when a package sits in several workspaces.
@@ -512,7 +623,12 @@ export function createScanService(deps: ScanServiceDeps) {
 		>();
 		for (const entry of entries) {
 			for (const range of rangesByPackage.get(entry.name) ?? []) {
-				if (!satisfiesRange(entry.version, range.vulnerableRange)) {
+				if (
+					!port.versioning.satisfies(
+						entry.version,
+						range.vulnerableRange
+					)
+				) {
 					continue;
 				}
 				const key = [range.advisoryId, entry.name, entry.version].join(
@@ -542,28 +658,22 @@ export function createScanService(deps: ScanServiceDeps) {
 		const directNames = new Set(
 			entries.filter((entry) => entry.isDirect).map((entry) => entry.name)
 		);
-		const packuments = await loadPackuments(
+		const releases = await loadReleases(
+			provider,
 			[...new Set([...affectedNames, ...directNames])],
 			warnings
 		);
 
 		const matches: FindingMatch[] = [...matchByKey.values()].map(
 			({ entry, advisoryId, severity }) => {
-				const packument = packuments.get(entry.name);
-				const available =
-					packument === undefined
-						? []
-						: Object.values(packument.versions).map((version) => ({
-								version: version.version,
-								deprecated: version.deprecated,
-							}));
 				const fix = computeFix({
 					currentVersion: entry.version,
 					declaredRange: entry.declaredRange ?? undefined,
 					allRangesForPackage: (
 						rangesByPackage.get(entry.name) ?? []
 					).map((range) => range.vulnerableRange),
-					availableVersions: available,
+					availableVersions: releases.get(entry.name)?.versions ?? [],
+					versioning: port.versioning,
 				});
 				return {
 					advisoryId,
@@ -590,9 +700,19 @@ export function createScanService(deps: ScanServiceDeps) {
 			matches
 		);
 
-		await runOutdatedPass(project, scan, entries, packuments, warnings);
+		await runOutdatedPass(
+			project,
+			scan,
+			entries,
+			releases,
+			provider,
+			port,
+			warnings
+		);
 
-		const peerIssues = checkPeers(graph);
+		const peerIssues = checkPeers(graph, {
+			versioning: port.versioning,
+		});
 		await deps.peerIssues.syncForScan(project.id, scan.id, peerIssues);
 
 		const [openCounts, outdatedCounts] = await Promise.all([
@@ -625,6 +745,7 @@ export function createScanService(deps: ScanServiceDeps) {
 			lockHash,
 			depsReused,
 			counters,
+			warnings,
 		});
 		await deps.projects.finishScan(project.id, {
 			scanId: scan.id,
@@ -638,7 +759,7 @@ export function createScanService(deps: ScanServiceDeps) {
 		});
 
 		await dispatchDiffAndAutoPr(project, scan);
-		await dispatchAutoBump(project, scan);
+		await dispatchAutoBump(project, scan, provider);
 
 		return {
 			scanId: scan.id,
@@ -654,7 +775,9 @@ export function createScanService(deps: ScanServiceDeps) {
 		project: ProjectRow,
 		scan: ScanRow,
 		entries: readonly DependencySetEntryRow[],
-		packuments: Map<string, Packument>,
+		releases: Map<string, ReleaseSummary>,
+		provider: RegistryProvider,
+		port: EcosystemPort,
 		warnings: string[]
 	): Promise<void> {
 		// One status row per (workspace, package): prefer the direct
@@ -674,35 +797,43 @@ export function createScanService(deps: ScanServiceDeps) {
 		}
 
 		const rows = [...representative.values()];
-		const distTagsOnly = [
+		const latestOnly = [
 			...new Set(
 				rows
 					.map((entry) => entry.name)
-					.filter((name) => !packuments.has(name))
+					.filter((name) => !releases.has(name))
 			),
 		];
-		const distTags = new Map<string, DistTags>();
+		const latestTags = new Map<string, { latest?: string }>();
 		await mapWithConcurrency(
-			distTagsOnly,
+			latestOnly,
 			REGISTRY_CONCURRENCY,
 			async (name) => {
 				try {
-					distTags.set(name, await deps.npm.getDistTags(name));
+					latestTags.set(name, await provider.latestTags(name));
 				} catch (error) {
-					warnings.push(`dist-tags ${name}: ${messageOf(error)}`);
+					warnings.push(`latest ${name}: ${messageOf(error)}`);
 				}
 			}
 		);
 
 		const statuses: DependencyStatusInput[] = rows.map((entry) => {
-			const packument = packuments.get(entry.name);
-			const tags =
-				packument?.['dist-tags'] ?? distTags.get(entry.name) ?? {};
+			const summary = releases.get(entry.name);
+			const tags = summary?.tags ?? latestTags.get(entry.name) ?? {};
 			const outdated = computeOutdated({
 				current: entry.version,
 				declaredRange: entry.declaredRange ?? undefined,
 				distTags: tags,
-				versions: packument?.versions,
+				versions:
+					summary === undefined
+						? undefined
+						: Object.fromEntries(
+								summary.versions.map((version) => [
+									version.version,
+									{ deprecated: version.deprecated },
+								])
+							),
+				versioning: port.versioning,
 			});
 			return {
 				workspace: entry.workspace,
@@ -797,7 +928,8 @@ export function createScanService(deps: ScanServiceDeps) {
 	 */
 	async function dispatchAutoBump(
 		project: ProjectRow,
-		scan: ScanRow
+		scan: ScanRow,
+		provider: RegistryProvider
 	): Promise<void> {
 		if (!project.autoBumpEnabled) return;
 
@@ -824,7 +956,7 @@ export function createScanService(deps: ScanServiceDeps) {
 				let times = timesByPackage.get(row.packageName);
 				if (times === undefined) {
 					try {
-						times = await deps.npm.getPublishTimes(row.packageName);
+						times = await provider.publishTimes(row.packageName);
 					} catch (error) {
 						log?.warn(
 							'auto-bump: publish times unavailable — skipping package',

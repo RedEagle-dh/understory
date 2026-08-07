@@ -14,6 +14,20 @@ const ScanIdParam = t.Object({
 	scanId: t.String({ minLength: 1, maxLength: 64 }),
 });
 
+function parseWarnings(value: string | null): string[] {
+	if (value === null) return [];
+	try {
+		const parsed: unknown = JSON.parse(value);
+		return Array.isArray(parsed)
+			? parsed
+					.filter((item): item is string => typeof item === 'string')
+					.slice(0, 50)
+			: [];
+	} catch {
+		return [];
+	}
+}
+
 function toListItem(row: ScanRow) {
 	return {
 		id: row.id,
@@ -27,6 +41,7 @@ function toListItem(row: ScanRow) {
 		finishedAt: row.finishedAt,
 		durationMs: row.durationMs,
 		errorCode: row.errorCode,
+		warnings: parseWarnings(row.warningsJson),
 		totalDeps: row.totalDeps,
 		directDeps: row.directDeps,
 		peerDeps: row.peerDeps,

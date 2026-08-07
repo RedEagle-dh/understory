@@ -1,12 +1,13 @@
-import semver from 'semver';
 import { normalizeGhsaId } from '../advisories/normalize-npm';
 import {
 	cvssScoreToBucket,
 	cvssVectorBaseScore,
 	parseSeverityLabel,
 } from '../advisories/severity';
+import { pep440Versioning } from '../pep440';
 import type {
 	AdvisoryRange,
+	Ecosystem,
 	NormalizedAdvisory,
 	OsvAffected,
 	OsvEvent,
@@ -14,10 +15,78 @@ import type {
 	OsvVuln,
 	Severity,
 } from '../types';
+import { semverVersioning, type Versioning } from '../versioning';
 
 const GHSA_ID = /^GHSA-/i;
 const CVE_ID = /^CVE-\d{4}-\d{4,}$/i;
 const SUPPORTED_RANGE_TYPES = new Set(['SEMVER', 'ECOSYSTEM']);
+
+/** OSV's `package.ecosystem` value per engine ecosystem. */
+export const OSV_ECOSYSTEM_NAMES: Record<Ecosystem, string> = {
+	npm: 'npm',
+	pypi: 'PyPI',
+};
+
+interface EcosystemRenderConfig {
+	osvName: string;
+	versioning: Versioning;
+	/** Render one half-open interval in the ecosystem's range syntax. */
+	renderClause(interval: Interval): string;
+	/** An exact-version entry of `affected[].versions` as a range. */
+	renderExact(version: string): string;
+	/**
+	 * `true` when every interval of an affected entry collapses into ONE
+	 * AdvisoryRange row (npm's `||` union); `false` emits one row per interval
+	 * (PEP 440 specifier sets have no OR).
+	 */
+	unionRows: boolean;
+}
+
+const RENDERERS: Record<Ecosystem, EcosystemRenderConfig> = {
+	npm: {
+		osvName: 'npm',
+		versioning: semverVersioning,
+		renderClause(interval) {
+			const parts = boundParts(interval);
+			return parts.length > 0 ? parts.join(' ') : '*';
+		},
+		renderExact: (version) => version,
+		unionRows: true,
+	},
+	pypi: {
+		osvName: 'PyPI',
+		versioning: pep440Versioning,
+		renderClause(interval) {
+			const parts = boundParts(interval);
+			return parts.length > 0 ? parts.join(',') : '>=0';
+		},
+		renderExact: (version) => `==${version}`,
+		unionRows: false,
+	},
+};
+
+/** One half-open interval extracted from an OSV event list. */
+export interface Interval {
+	/** Lower bound (inclusive); `undefined` or `'0'` = from the beginning. */
+	introduced?: string;
+	/** Exclusive upper bound. */
+	fixed?: string;
+	/** Inclusive upper bound, only when no `fixed` exists. */
+	lastAffected?: string;
+}
+
+function boundParts(interval: Interval): string[] {
+	const parts: string[] = [];
+	if (interval.introduced !== undefined && interval.introduced !== '0') {
+		parts.push(`>=${interval.introduced}`);
+	}
+	if (interval.fixed !== undefined) {
+		parts.push(`<${interval.fixed}`);
+	} else if (interval.lastAffected !== undefined) {
+		parts.push(`<=${interval.lastAffected}`);
+	}
+	return parts;
+}
 
 function normalizeId(id: string): string {
 	return GHSA_ID.test(id)
@@ -48,15 +117,18 @@ function eventVersion(event: OsvEvent): string | undefined {
 /**
  * Sort the events of a range so that `introduced`/`fixed` pairs line up even
  * when the database stores them out of order. Falls back to the original order
- * when any version is not semver-comparable (`ECOSYSTEM` ranges may not be).
+ * when any version is not comparable under `versioning` (`ECOSYSTEM` ranges
+ * may not be).
  */
-export function sortOsvEvents(events: readonly OsvEvent[]): OsvEvent[] {
+export function sortOsvEvents(
+	events: readonly OsvEvent[],
+	versioning: Versioning = semverVersioning
+): OsvEvent[] {
 	const comparable = events.every((event) => {
 		const version = eventVersion(event);
 		return (
 			version === '0' ||
-			(version !== undefined &&
-				semver.valid(version, { loose: true }) !== null)
+			(version !== undefined && versioning.isValidVersion(version))
 		);
 	});
 	if (!comparable) return [...events];
@@ -69,8 +141,7 @@ export function sortOsvEvents(events: readonly OsvEvent[]): OsvEvent[] {
 			const vb = eventVersion(b.event) ?? '0';
 			if (va === '0' && vb !== '0') return -1;
 			if (vb === '0' && va !== '0') return 1;
-			const compared =
-				va === vb ? 0 : semver.compare(va, vb, { loose: true });
+			const compared = va === vb ? 0 : versioning.compare(va, vb);
 			if (compared !== 0) return compared;
 			const byWeight = weight(a.event) - weight(b.event);
 			return byWeight !== 0 ? byWeight : a.index - b.index;
@@ -79,27 +150,28 @@ export function sortOsvEvents(events: readonly OsvEvent[]): OsvEvent[] {
 }
 
 /**
- * Turn one OSV `affected[].ranges[]` entry into semver range clauses.
+ * Turn one OSV `affected[].ranges[]` entry into half-open intervals.
  *
  * `introduced: "0"` is the sentinel for "from the beginning" and drops the
  * lower bound; a `last_affected` without a `fixed` produces an inclusive upper
  * bound.
  */
-export function osvRangeToClauses(range: OsvRange): string[] {
+export function osvRangeToIntervals(
+	range: OsvRange,
+	versioning: Versioning = semverVersioning
+): Interval[] {
 	const type = (range.type ?? 'SEMVER').toUpperCase();
 	if (!SUPPORTED_RANGE_TYPES.has(type)) return [];
-	const events = sortOsvEvents(range.events ?? []);
-	const clauses: string[] = [];
+	const events = sortOsvEvents(range.events ?? [], versioning);
+	const intervals: Interval[] = [];
 	let introduced: string | null = null;
 	let open = false;
 
-	const emit = (upper?: string) => {
-		const lower =
-			introduced !== null && introduced !== '0' ? `>=${introduced}` : '';
-		const clause = [lower, upper]
-			.filter((part) => part !== undefined && part !== '')
-			.join(' ');
-		clauses.push(clause === '' ? '*' : clause);
+	const emit = (upper?: Pick<Interval, 'fixed' | 'lastAffected'>) => {
+		intervals.push({
+			introduced: introduced ?? undefined,
+			...upper,
+		});
 		introduced = null;
 		open = false;
 	};
@@ -112,55 +184,91 @@ export function osvRangeToClauses(range: OsvRange): string[] {
 			continue;
 		}
 		if (event.fixed !== undefined) {
-			emit(`<${event.fixed}`);
+			emit({ fixed: event.fixed });
 			continue;
 		}
 		if (event.last_affected !== undefined) {
-			emit(`<=${event.last_affected}`);
+			emit({ lastAffected: event.last_affected });
 		}
 	}
 	if (open) emit();
 
-	return clauses;
+	return intervals;
 }
 
-function affectedToRange(affected: OsvAffected): AdvisoryRange | null {
-	const packageName = affected.package?.name;
-	if (typeof packageName !== 'string' || packageName === '') return null;
-	const ecosystem = affected.package?.ecosystem ?? '';
-	if (ecosystem !== '' && !/^npm$/i.test(ecosystem)) return null;
+/** {@link osvRangeToIntervals} rendered as npm semver range clauses. */
+export function osvRangeToClauses(range: OsvRange): string[] {
+	return osvRangeToIntervals(range).map((interval) =>
+		RENDERERS.npm.renderClause(interval)
+	);
+}
+
+function affectedToRanges(
+	affected: OsvAffected,
+	ecosystem: Ecosystem
+): AdvisoryRange[] {
+	const config = RENDERERS[ecosystem];
+	const rawName = affected.package?.name;
+	if (typeof rawName !== 'string' || rawName === '') return [];
+	const affectedEcosystem = affected.package?.ecosystem ?? '';
+	if (
+		affectedEcosystem !== '' &&
+		affectedEcosystem.toLowerCase() !== config.osvName.toLowerCase()
+	) {
+		return [];
+	}
+	const packageName = config.versioning.normalizeName(rawName);
 
 	const clauses: string[] = [];
 	for (const range of affected.ranges ?? []) {
-		clauses.push(...osvRangeToClauses(range));
+		for (const interval of osvRangeToIntervals(range, config.versioning)) {
+			clauses.push(config.renderClause(interval));
+		}
 	}
 	if (
 		clauses.length === 0 &&
 		Array.isArray(affected.versions) &&
 		affected.versions.length > 0
 	) {
-		clauses.push(...affected.versions);
+		clauses.push(
+			...affected.versions.map((version) => config.renderExact(version))
+		);
 	}
-	if (clauses.length === 0) return null;
+	if (clauses.length === 0) return [];
 
 	const fixed: string[] = [];
 	for (const range of affected.ranges ?? []) {
 		for (const event of range.events ?? []) {
 			if (
 				typeof event.fixed === 'string' &&
-				semver.valid(event.fixed, { loose: true })
+				config.versioning.isValidVersion(event.fixed)
 			) {
 				fixed.push(event.fixed);
 			}
 		}
 	}
+	const firstPatched =
+		fixed.length > 0
+			? fixed.sort((a, b) => config.versioning.compare(a, b))[0]
+			: undefined;
 
-	return {
+	const unique = [...new Set(clauses)];
+	if (config.unionRows) {
+		return [
+			{
+				ecosystem,
+				packageName,
+				vulnerableRange: unique.join(' || '),
+				firstPatched,
+			},
+		];
+	}
+	return unique.map((vulnerableRange) => ({
+		ecosystem,
 		packageName,
-		vulnerableRange: [...new Set(clauses)].join(' || '),
-		firstPatched:
-			fixed.length > 0 ? (semver.sort(fixed)[0] as string) : undefined,
-	};
+		vulnerableRange,
+		firstPatched,
+	}));
 }
 
 function extractSeverity(vuln: OsvVuln): {
@@ -210,8 +318,21 @@ function firstLine(text: string | undefined): string | undefined {
 	return line?.trim();
 }
 
+export interface NormalizeOsvOptions {
+	/**
+	 * Ecosystem whose `affected[]` entries to keep (an advisory can span
+	 * several). Ranges are rendered in that ecosystem's own syntax. Default
+	 * `npm`.
+	 */
+	ecosystem?: Ecosystem;
+}
+
 /** Convert an OSV vulnerability document into a {@link NormalizedAdvisory}. */
-export function normalizeOsvVuln(vuln: OsvVuln): NormalizedAdvisory {
+export function normalizeOsvVuln(
+	vuln: OsvVuln,
+	options: NormalizeOsvOptions = {}
+): NormalizedAdvisory {
+	const ecosystem = options.ecosystem ?? 'npm';
 	const allIds = [vuln.id, ...(vuln.aliases ?? [])].filter(
 		(id): id is string => typeof id === 'string' && id !== ''
 	);
@@ -222,8 +343,7 @@ export function normalizeOsvVuln(vuln: OsvVuln): NormalizedAdvisory {
 
 	const ranges: AdvisoryRange[] = [];
 	for (const affected of vuln.affected ?? []) {
-		const range = affectedToRange(affected);
-		if (range !== null) ranges.push(range);
+		ranges.push(...affectedToRanges(affected, ecosystem));
 	}
 
 	const { severity, cvssScore, cvssVector } = extractSeverity(vuln);

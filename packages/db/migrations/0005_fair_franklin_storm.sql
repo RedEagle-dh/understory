@@ -1,0 +1,1 @@
+ALTER TABLE `dependency_sets` ADD `warnings_json` text;

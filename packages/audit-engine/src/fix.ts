@@ -1,6 +1,5 @@
-import semver from 'semver';
-import { isSemverRange, satisfiesRange, updateKindBetween } from './ranges';
 import type { FixType } from './types';
+import { semverVersioning, type Versioning } from './versioning';
 
 export interface AvailableVersion {
 	version: string;
@@ -15,6 +14,8 @@ export interface FixInput {
 	allRangesForPackage: readonly string[];
 	/** Published versions, typically from the packument. */
 	availableVersions: readonly (AvailableVersion | string)[];
+	/** Ecosystem version semantics. Defaults to npm/semver. */
+	versioning?: Versioning;
 }
 
 export interface FixResult {
@@ -41,41 +42,39 @@ function toAvailable(entry: AvailableVersion | string): AvailableVersion {
  */
 export function computeFix(input: FixInput): FixResult {
 	const { currentVersion, declaredRange } = input;
+	const versioning = input.versioning ?? semverVersioning;
 
 	const ignoredRanges = input.allRangesForPackage.filter(
-		(range) => !isSemverRange(range)
+		(range) => !versioning.isValidRange(range)
 	);
 	const ranges = input.allRangesForPackage.filter((range) =>
-		isSemverRange(range)
+		versioning.isValidRange(range)
 	);
 
-	const currentValid = semver.valid(currentVersion, { loose: true }) !== null;
+	const currentValid = versioning.isValidVersion(currentVersion);
 
 	const candidates = input.availableVersions
 		.map(toAvailable)
 		.filter((entry) => {
-			if (semver.valid(entry.version, { loose: true }) === null)
-				return false;
+			if (!versioning.isValidVersion(entry.version)) return false;
 			if (entry.deprecated !== undefined && entry.deprecated !== '')
 				return false;
-			if (
-				(semver.prerelease(entry.version, { loose: true }) ?? [])
-					.length > 0
-			)
-				return false;
+			if (versioning.isPrerelease(entry.version)) return false;
 			if (
 				currentValid &&
-				!semver.gt(entry.version, currentVersion, { loose: true })
+				versioning.compare(entry.version, currentVersion) <= 0
 			) {
 				return false;
 			}
 			return true;
 		})
-		.sort((a, b) => semver.compare(a.version, b.version, { loose: true }));
+		.sort((a, b) => versioning.compare(a.version, b.version));
 
 	const safe = candidates.find(
 		(candidate) =>
-			!ranges.some((range) => satisfiesRange(candidate.version, range))
+			!ranges.some((range) =>
+				versioning.satisfies(candidate.version, range)
+			)
 	);
 
 	if (safe === undefined) {
@@ -88,7 +87,10 @@ export function computeFix(input: FixInput): FixResult {
 	}
 
 	const fixType: FixType = currentValid
-		? (updateKindBetween(currentVersion, safe.version) as FixType)
+		? (versioning.updateKindBetween(
+				currentVersion,
+				safe.version
+			) as FixType)
 		: 'none';
 
 	return {
@@ -96,7 +98,7 @@ export function computeFix(input: FixInput): FixResult {
 		fixType,
 		fixWithinRange:
 			declaredRange !== undefined &&
-			satisfiesRange(safe.version, declaredRange),
+			versioning.satisfies(safe.version, declaredRange),
 		ignoredRanges,
 	};
 }

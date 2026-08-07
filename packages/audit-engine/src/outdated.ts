@@ -1,11 +1,5 @@
-import semver from 'semver';
-import {
-	isSemverRange,
-	maxSatisfyingVersion,
-	satisfiesRange,
-	updateKindBetween,
-} from './ranges';
 import type { DistTags, PackumentVersion, UpdateKind } from './types';
+import { semverVersioning, type Versioning } from './versioning';
 
 export interface OutdatedInput {
 	/** The currently installed version. */
@@ -21,6 +15,8 @@ export interface OutdatedInput {
 	versions?:
 		| Record<string, Pick<PackumentVersion, 'deprecated'> | undefined>
 		| readonly string[];
+	/** Ecosystem version semantics. Defaults to npm/semver. */
+	versioning?: Versioning;
 }
 
 export interface OutdatedResult {
@@ -63,6 +59,7 @@ function deprecationOf(
  */
 export function computeOutdated(input: OutdatedInput): OutdatedResult {
 	const { current, declaredRange } = input;
+	const versioning = input.versioning ?? semverVersioning;
 	const latest =
 		typeof input.distTags?.latest === 'string' &&
 		input.distTags.latest !== ''
@@ -71,15 +68,15 @@ export function computeOutdated(input: OutdatedInput): OutdatedResult {
 
 	const versions = versionList(input.versions);
 	const rangeUnsupported =
-		declaredRange !== undefined && !isSemverRange(declaredRange);
+		declaredRange !== undefined && !versioning.isValidRange(declaredRange);
 
 	let wanted: string | undefined;
 	if (declaredRange !== undefined && !rangeUnsupported) {
 		if (versions.length > 0) {
-			wanted = maxSatisfyingVersion(versions, declaredRange);
+			wanted = versioning.maxSatisfying(versions, declaredRange);
 		} else if (
 			latest !== undefined &&
-			satisfiesRange(latest, declaredRange)
+			versioning.satisfies(latest, declaredRange)
 		) {
 			wanted = latest;
 		}
@@ -87,11 +84,11 @@ export function computeOutdated(input: OutdatedInput): OutdatedResult {
 		wanted = latest;
 	}
 
-	const currentValid = semver.valid(current, { loose: true }) !== null;
+	const currentValid = versioning.isValidVersion(current);
 	const updateKind: UpdateKind =
 		latest === undefined || !currentValid
 			? 'none'
-			: updateKindBetween(current, latest);
+			: versioning.updateKindBetween(current, latest);
 
 	return {
 		current,

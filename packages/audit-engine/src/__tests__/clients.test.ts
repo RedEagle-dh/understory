@@ -361,6 +361,23 @@ describe('OSV client', () => {
 		expect(results[2]?.vulns[1]?.modified).toBe('2023-11-08T04:00:00Z');
 	});
 
+	test('per-pair ecosystem and the client default override npm', async () => {
+		const { fetch, calls } = fakeFetch(() =>
+			jsonResponse({ results: [{}, {}] })
+		);
+
+		await createOsvClient({ fetch, ecosystem: 'PyPI' }).queryBatch([
+			{ name: 'requests', version: '2.31.0' },
+			{ name: 'lodash', version: '4.17.21', ecosystem: 'npm' },
+		]);
+
+		const body = JSON.parse(calls[0]?.body ?? '{}') as {
+			queries: { package: { name: string; ecosystem: string } }[];
+		};
+		expect(body.queries[0]?.package.ecosystem).toBe('PyPI');
+		expect(body.queries[1]?.package.ecosystem).toBe('npm');
+	});
+
 	test('chunks large batches while keeping the overall order', async () => {
 		const pairs = Array.from({ length: 5 }, (_, index) => ({
 			name: `pkg-${index}`,

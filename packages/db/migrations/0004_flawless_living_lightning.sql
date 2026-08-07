@@ -1,0 +1,1 @@
+ALTER TABLE `scans` ADD `warnings_json` text;

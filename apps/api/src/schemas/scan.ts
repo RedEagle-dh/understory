@@ -40,6 +40,8 @@ export const ScanListItem = t.Composite([
 		finishedAt: t.Union([t.Date(), t.Null()]),
 		durationMs: NullableNumber,
 		errorCode: NullableString,
+		/** Non-fatal degradations ("no lockfile found", registry hiccups, …). */
+		warnings: t.Array(t.String(), { maxItems: 50 }),
 	}),
 	ScanCountersView,
 ]);

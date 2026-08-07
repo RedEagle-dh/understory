@@ -85,8 +85,8 @@ export function AddProjectDialog() {
         <DialogHeader>
           <DialogTitle>Add project</DialogTitle>
           <DialogDescription>
-            Register a GitHub repository to start auditing its dependencies.
-            The repo is validated for reachability before it's registered.
+            Register a GitHub repository to start auditing its dependencies. The
+            repo is validated for reachability before it's registered.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -219,10 +219,10 @@ export function AddProjectDialog() {
                   />
                   <FieldDescription>
                     A fine-grained personal access token, required for private
-                    repos and to avoid rate limits.{" "}
-                    <code>contents:read</code> is enough for scanning; opening
-                    update PRs needs <code>contents</code> and{" "}
-                    <code>pull requests</code> read/write. See{" "}
+                    repos and to avoid rate limits. <code>contents:read</code>{" "}
+                    is enough for scanning; opening update PRs needs{" "}
+                    <code>contents</code> and <code>pull requests</code>{" "}
+                    read/write. See{" "}
                     <a
                       href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens"
                       target="_blank"

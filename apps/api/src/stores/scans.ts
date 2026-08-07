@@ -191,6 +191,8 @@ export function createScansStore(db: Db) {
 				lockHash: string;
 				depsReused: boolean;
 				counters: ScanCounters;
+				/** Non-fatal warnings; the UI's only window into a degraded scan. */
+				warnings?: readonly string[];
 			}
 		): Promise<void> {
 			const finishedAt = new Date();
@@ -204,6 +206,15 @@ export function createScansStore(db: Db) {
 					dependencySetId: result.dependencySetId,
 					lockHash: result.lockHash,
 					depsReused: result.depsReused,
+					warningsJson:
+						result.warnings === undefined ||
+						result.warnings.length === 0
+							? null
+							: JSON.stringify(
+									result.warnings.map((warning) =>
+										warning.slice(0, 500)
+									)
+								),
 					finishedAt,
 					durationMs:
 						scan === null

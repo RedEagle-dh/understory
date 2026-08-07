@@ -6,6 +6,7 @@ import {
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip"
 import { cn } from "@workspace/ui/lib/utils"
+import { AlertTriangle } from "lucide-react"
 import { CopyButton } from "@/components/common/copy-button"
 import { RelativeTime } from "@/components/common/relative-time"
 import { ScanStatusPill } from "@/components/common/scan-status-pill"
@@ -55,7 +56,27 @@ export const scanColumns: ColumnDef<ScanListItem>[] = [
       <DataTableColumnHeader column={column} title="Status" />
     ),
     enableSorting: false,
-    cell: ({ row }) => <ScanStatusPill scan={row.original} />,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-1.5">
+        <ScanStatusPill scan={row.original} />
+        {row.original.warnings.length > 0 && (
+          <Tooltip>
+            <TooltipTrigger
+              render={<span className="inline-flex text-severity-moderate" />}
+            >
+              <AlertTriangle className="size-3.5" aria-label="Scan warnings" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <ul className="list-disc space-y-1 pl-3">
+                {row.original.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
+    ),
   },
   {
     id: "duration",

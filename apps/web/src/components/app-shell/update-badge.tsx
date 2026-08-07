@@ -79,8 +79,8 @@ export function UpdateBadge() {
 
           <div className="flex flex-col gap-3 text-sm">
             <p>
-              Pull the new image and recreate the container on the host
-              running understory:
+              Pull the new image and recreate the container on the host running
+              understory:
             </p>
             <div className="flex items-center justify-between gap-2 rounded-md bg-muted py-1.5 pr-1.5 pl-3">
               <pre className="overflow-x-auto font-mono text-xs">
@@ -93,9 +93,9 @@ export function UpdateBadge() {
               />
             </div>
             <p className="text-muted-foreground">
-              Database migrations run automatically on startup. Your data
-              lives in the <code>understory-data</code> volume — consider
-              backing it up before major updates.
+              Database migrations run automatically on startup. Your data lives
+              in the <code>understory-data</code> volume — consider backing it
+              up before major updates.
             </p>
           </div>
 

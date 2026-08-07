@@ -114,7 +114,7 @@ function ProjectVulnerabilities() {
     <>
       <PageHeader
         title="Vulnerabilities"
-        description="Known npm/OSV advisories affecting this project's dependency tree, grouped by advisory."
+        description="Known registry and OSV advisories affecting this project's dependency tree, grouped by advisory."
       />
 
       {summaryQuery.data !== undefined && (

@@ -17,8 +17,8 @@ import type { LucideIcon } from "lucide-react"
 import {
   Bell,
   FolderKanban,
-  FolderPlus,
   LayoutDashboard,
+  SlidersHorizontal,
   UserCircle,
   Users,
 } from "lucide-react"
@@ -26,6 +26,7 @@ import { RoleGate } from "@/components/common/role-gate"
 import { Wordmark } from "@/components/common/wordmark"
 import { projectsQueryOptions } from "@/features/projects/api"
 import { NavUser } from "./nav-user"
+import { UpdateBadge } from "./update-badge"
 
 const RECENT_PROJECTS_LIMIT = 8
 
@@ -125,13 +126,6 @@ export function AppSidebar() {
                 exact
               />
               <RecentProjects />
-              <RoleGate capability="createProject">
-                <NavLink
-                  to="/projects/new"
-                  icon={FolderPlus}
-                  label="Add project"
-                />
-              </RoleGate>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -150,6 +144,13 @@ export function AppSidebar() {
               <RoleGate capability="manageUsers">
                 <NavLink to="/settings/users" icon={Users} label="Users" />
               </RoleGate>
+              <RoleGate capability="manageSettings">
+                <NavLink
+                  to="/settings/defaults"
+                  icon={SlidersHorizontal}
+                  label="Defaults"
+                />
+              </RoleGate>
               <NavLink
                 to="/settings/profile"
                 icon={UserCircle}
@@ -160,6 +161,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
+        <UpdateBadge />
         <NavUser />
       </SidebarFooter>
     </Sidebar>

@@ -53,6 +53,10 @@ import type { AutoPrPort, ScanNotifierPort } from './services/ports';
 import { createPrService, type PrService } from './services/pr-service';
 import { createScanService, type ScanService } from './services/scan-service';
 import {
+	createUpdateCheckService,
+	type UpdateCheckService,
+} from './services/update-check-service';
+import {
 	createSchedulerService,
 	type SchedulerService,
 } from './services/scheduler-service';
@@ -252,6 +256,7 @@ export interface AppEnv extends AppEnvironment {
 	readonly notificationService: NotificationService;
 	readonly prService: PrService;
 	readonly advisoryRefreshService: AdvisoryRefreshService;
+	readonly updateCheckService: UpdateCheckService;
 	/** Stateless, shared across every scan and the advisory-refresh job — see the comment on `npmClient`/`osvClient` below. */
 	readonly osv: OsvClient;
 	readonly notifier: ScanNotifierPort;
@@ -327,6 +332,15 @@ export function createEnvironment(input: EnvironmentInput): AppEnv {
 		log: deps.log,
 	});
 
+	const updateCheckService = createUpdateCheckService({
+		fetchImpl: fetch,
+		currentVersion: env.APP_VERSION,
+		repo: env.UPDATE_CHECK_REPO,
+		apiUrl: env.GITHUB_API_URL,
+		enabled: env.UPDATE_CHECK,
+		log: deps.log,
+	});
+
 	const schedulerService = createSchedulerService({
 		projects: stores.projects,
 		scans: stores.scans,
@@ -351,6 +365,7 @@ export function createEnvironment(input: EnvironmentInput): AppEnv {
 		notificationService,
 		prService,
 		advisoryRefreshService,
+		updateCheckService,
 		osv: osvClient,
 		notifier: notificationService.notifier,
 		autoPr: prService.autoPr,

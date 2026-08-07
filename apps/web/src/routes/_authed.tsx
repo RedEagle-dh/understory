@@ -1,6 +1,8 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router"
 import { AppShell } from "@/components/app-shell/app-shell"
 import { sessionQueryOptions } from "@/features/auth/api"
+import { AddProjectProvider } from "@/features/projects/add-project-context"
+import { AddProjectDialog } from "@/features/projects/components/add-project-dialog"
 import { buildPermissions } from "@/lib/permissions"
 
 export const Route = createFileRoute("/_authed")({
@@ -24,8 +26,11 @@ export const Route = createFileRoute("/_authed")({
 
 function AuthedLayout() {
   return (
-    <AppShell>
-      <Outlet />
-    </AppShell>
+    <AddProjectProvider>
+      <AppShell>
+        <Outlet />
+      </AppShell>
+      <AddProjectDialog />
+    </AddProjectProvider>
   )
 }

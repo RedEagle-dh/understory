@@ -13,16 +13,20 @@ import {
   FolderKanban,
   FolderPlus,
   LayoutDashboard,
+  SlidersHorizontal,
   UserCircle,
   Users,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { usePermissions } from "@/features/auth/use-permissions"
+import { useAddProjectFlow } from "@/features/projects/add-project-context"
 import type { Capability } from "@/lib/permissions"
 
 interface PaletteItem {
   label: string
-  to: string
+  /** Either a route to navigate to, or the add-project dialog. */
+  to?: string
+  action?: "add-project"
   icon: LucideIcon
   capability?: Capability
 }
@@ -32,7 +36,7 @@ const items: PaletteItem[] = [
   { label: "All projects", to: "/projects", icon: FolderKanban },
   {
     label: "Add project",
-    to: "/projects/new",
+    action: "add-project",
     icon: FolderPlus,
     capability: "createProject",
   },
@@ -49,6 +53,12 @@ const items: PaletteItem[] = [
     icon: Users,
     capability: "manageUsers",
   },
+  {
+    label: "Global defaults",
+    to: "/settings/defaults",
+    icon: SlidersHorizontal,
+    capability: "manageSettings",
+  },
 ]
 
 /** ⌘K / Ctrl+K palette for jumping straight to a page, filtered by role. */
@@ -56,6 +66,7 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
   const permissions = usePermissions()
+  const addProject = useAddProjectFlow()
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -72,9 +83,13 @@ export function CommandPalette() {
     (item) => item.capability === undefined || permissions.has(item.capability)
   )
 
-  const go = (to: string) => {
+  const run = (item: PaletteItem) => {
     setOpen(false)
-    void navigate({ to })
+    if (item.action === "add-project") {
+      addProject.setOpen(true)
+      return
+    }
+    if (item.to !== undefined) void navigate({ to: item.to })
   }
 
   return (
@@ -84,7 +99,7 @@ export function CommandPalette() {
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Navigation">
           {visible.map((item) => (
-            <CommandItem key={item.to} onSelect={() => go(item.to)}>
+            <CommandItem key={item.label} onSelect={() => run(item)}>
               <item.icon />
               {item.label}
             </CommandItem>

@@ -23,7 +23,10 @@ export function EmptyState({
   action,
 }: EmptyStateProps) {
   return (
-    <Empty>
+    // The Empty primitive declares border-dashed but no border width — add
+    // it (plus a faint surface tint) so the state reads as a panel instead
+    // of text floating on the page background.
+    <Empty className="border bg-card/50">
       <EmptyHeader>
         {Icon !== undefined && (
           <EmptyMedia variant="icon">

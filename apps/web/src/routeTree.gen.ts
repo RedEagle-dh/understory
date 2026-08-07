@@ -17,8 +17,8 @@ import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicSignupRouteImport } from './routes/_public/signup'
 import { Route as AuthedProjectsIndexRouteImport } from './routes/_authed/projects/index'
 import { Route as AuthedProjectsProjectIdRouteImport } from './routes/_authed/projects/$projectId'
-import { Route as AuthedProjectsNewRouteImport } from './routes/_authed/projects/new'
 import { Route as AuthedSettingsIndexRouteImport } from './routes/_authed/settings/index'
+import { Route as AuthedSettingsDefaultsRouteImport } from './routes/_authed/settings/defaults'
 import { Route as AuthedSettingsNotificationsRouteImport } from './routes/_authed/settings/notifications'
 import { Route as AuthedSettingsProfileRouteImport } from './routes/_authed/settings/profile'
 import { Route as AuthedSettingsUsersRouteImport } from './routes/_authed/settings/users'
@@ -67,14 +67,14 @@ const AuthedProjectsProjectIdRoute = AuthedProjectsProjectIdRouteImport.update({
   path: '/projects/$projectId',
   getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedProjectsNewRoute = AuthedProjectsNewRouteImport.update({
-  id: '/projects/new',
-  path: '/projects/new',
-  getParentRoute: () => AuthedRoute,
-} as any)
 const AuthedSettingsIndexRoute = AuthedSettingsIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AuthedSettingsRoute,
+} as any)
+const AuthedSettingsDefaultsRoute = AuthedSettingsDefaultsRouteImport.update({
+  id: '/defaults',
+  path: '/defaults',
   getParentRoute: () => AuthedSettingsRoute,
 } as any)
 const AuthedSettingsNotificationsRoute =
@@ -136,7 +136,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof PublicLoginRoute
   '/signup': typeof PublicSignupRoute
   '/projects/$projectId': typeof AuthedProjectsProjectIdRouteWithChildren
-  '/projects/new': typeof AuthedProjectsNewRoute
+  '/settings/defaults': typeof AuthedSettingsDefaultsRoute
   '/settings/notifications': typeof AuthedSettingsNotificationsRoute
   '/settings/profile': typeof AuthedSettingsProfileRoute
   '/settings/users': typeof AuthedSettingsUsersRoute
@@ -153,7 +153,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthedIndexRoute
   '/login': typeof PublicLoginRoute
   '/signup': typeof PublicSignupRoute
-  '/projects/new': typeof AuthedProjectsNewRoute
+  '/settings/defaults': typeof AuthedSettingsDefaultsRoute
   '/settings/notifications': typeof AuthedSettingsNotificationsRoute
   '/settings/profile': typeof AuthedSettingsProfileRoute
   '/settings/users': typeof AuthedSettingsUsersRoute
@@ -175,7 +175,7 @@ export interface FileRoutesById {
   '/_public/signup': typeof PublicSignupRoute
   '/_authed/': typeof AuthedIndexRoute
   '/_authed/projects/$projectId': typeof AuthedProjectsProjectIdRouteWithChildren
-  '/_authed/projects/new': typeof AuthedProjectsNewRoute
+  '/_authed/settings/defaults': typeof AuthedSettingsDefaultsRoute
   '/_authed/settings/notifications': typeof AuthedSettingsNotificationsRoute
   '/_authed/settings/profile': typeof AuthedSettingsProfileRoute
   '/_authed/settings/users': typeof AuthedSettingsUsersRoute
@@ -196,7 +196,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/projects/$projectId'
-    | '/projects/new'
+    | '/settings/defaults'
     | '/settings/notifications'
     | '/settings/profile'
     | '/settings/users'
@@ -213,7 +213,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
-    | '/projects/new'
+    | '/settings/defaults'
     | '/settings/notifications'
     | '/settings/profile'
     | '/settings/users'
@@ -234,7 +234,7 @@ export interface FileRouteTypes {
     | '/_public/signup'
     | '/_authed/'
     | '/_authed/projects/$projectId'
-    | '/_authed/projects/new'
+    | '/_authed/settings/defaults'
     | '/_authed/settings/notifications'
     | '/_authed/settings/profile'
     | '/_authed/settings/users'
@@ -311,18 +311,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedProjectsProjectIdRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/projects/new': {
-      id: '/_authed/projects/new'
-      path: '/projects/new'
-      fullPath: '/projects/new'
-      preLoaderRoute: typeof AuthedProjectsNewRouteImport
-      parentRoute: typeof AuthedRoute
-    }
     '/_authed/settings/': {
       id: '/_authed/settings/'
       path: '/'
       fullPath: '/settings/'
       preLoaderRoute: typeof AuthedSettingsIndexRouteImport
+      parentRoute: typeof AuthedSettingsRoute
+    }
+    '/_authed/settings/defaults': {
+      id: '/_authed/settings/defaults'
+      path: '/defaults'
+      fullPath: '/settings/defaults'
+      preLoaderRoute: typeof AuthedSettingsDefaultsRouteImport
       parentRoute: typeof AuthedSettingsRoute
     }
     '/_authed/settings/notifications': {
@@ -392,6 +392,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthedSettingsRouteChildren {
+  AuthedSettingsDefaultsRoute: typeof AuthedSettingsDefaultsRoute
   AuthedSettingsNotificationsRoute: typeof AuthedSettingsNotificationsRoute
   AuthedSettingsProfileRoute: typeof AuthedSettingsProfileRoute
   AuthedSettingsUsersRoute: typeof AuthedSettingsUsersRoute
@@ -399,6 +400,7 @@ interface AuthedSettingsRouteChildren {
 }
 
 const AuthedSettingsRouteChildren: AuthedSettingsRouteChildren = {
+  AuthedSettingsDefaultsRoute: AuthedSettingsDefaultsRoute,
   AuthedSettingsNotificationsRoute: AuthedSettingsNotificationsRoute,
   AuthedSettingsProfileRoute: AuthedSettingsProfileRoute,
   AuthedSettingsUsersRoute: AuthedSettingsUsersRoute,
@@ -441,7 +443,6 @@ interface AuthedRouteChildren {
   AuthedSettingsRoute: typeof AuthedSettingsRouteWithChildren
   AuthedIndexRoute: typeof AuthedIndexRoute
   AuthedProjectsProjectIdRoute: typeof AuthedProjectsProjectIdRouteWithChildren
-  AuthedProjectsNewRoute: typeof AuthedProjectsNewRoute
   AuthedProjectsIndexRoute: typeof AuthedProjectsIndexRoute
 }
 
@@ -449,7 +450,6 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedSettingsRoute: AuthedSettingsRouteWithChildren,
   AuthedIndexRoute: AuthedIndexRoute,
   AuthedProjectsProjectIdRoute: AuthedProjectsProjectIdRouteWithChildren,
-  AuthedProjectsNewRoute: AuthedProjectsNewRoute,
   AuthedProjectsIndexRoute: AuthedProjectsIndexRoute,
 }
 

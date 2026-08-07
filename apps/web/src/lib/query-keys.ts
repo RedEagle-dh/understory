@@ -21,5 +21,6 @@ export const qk = {
   rules: (scope: string) => ["notifications", "rules", scope] as const,
   deliveries: () => ["notifications", "deliveries"] as const,
   users: () => ["users"] as const,
+  version: () => ["system", "version"] as const,
   adminSettings: () => ["admin-settings"] as const,
 } as const

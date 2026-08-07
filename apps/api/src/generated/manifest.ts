@@ -12,12 +12,13 @@ import { pullRequestsModule } from '../modules/pull-requests';
 import { notificationsModule } from '../modules/notifications';
 import { adminModule } from '../modules/admin';
 import { dashboardModule } from '../modules/dashboard';
+import { systemModule } from '../modules/system';
 import { jobsModule } from '../modules/jobs';
 
 export const manifest = defineManifest({
 	createEnvironment,
 	telemetry: [observabilityModule({"serviceName":"understory-api"})],
-	modules: [healthModule(), projectsModule(), scansModule(), dependenciesModule(), vulnerabilitiesModule(), pullRequestsModule(), notificationsModule(), adminModule(), dashboardModule(), jobsModule()] as const,
+	modules: [healthModule(), projectsModule(), scansModule(), dependenciesModule(), vulnerabilitiesModule(), pullRequestsModule(), notificationsModule(), adminModule(), dashboardModule(), systemModule(), jobsModule()] as const,
 });
 
 export type AppEden = ManifestEden<typeof manifest.modules>;

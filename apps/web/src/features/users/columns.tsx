@@ -100,7 +100,7 @@ export function buildUserColumns({
       enableSorting: false,
       cell: ({ row }) => {
         const user = row.original
-        if (user.banned !== true) return <Badge variant="outline">active</Badge>
+        if (user.banned !== true) return <Badge variant="success">active</Badge>
         const badge = <Badge variant="destructive">banned</Badge>
         if (user.banReason === null || user.banReason === undefined)
           return badge

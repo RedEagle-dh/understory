@@ -29,7 +29,7 @@ function RuleRow({ rule, channelName, projectId }: RuleRowProps) {
   const severityScoped = SEVERITY_SCOPED_EVENT_TYPES.has(rule.eventType)
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-md border px-3 py-2 text-sm">
+    <div className="flex flex-wrap items-center gap-3 rounded-md border bg-card px-3 py-2 text-sm">
       <span className="w-40 truncate font-medium">{channelName}</span>
       <span className="flex-1 text-muted-foreground">
         {EVENT_TYPE_LABELS[rule.eventType]}

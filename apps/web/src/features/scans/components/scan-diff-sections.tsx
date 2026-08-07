@@ -58,7 +58,7 @@ export function ScanDiffSections({ scanId }: ScanDiffSectionsProps) {
                   {diff.newFindings.map((finding) => (
                     <div
                       key={finding.findingId}
-                      className="flex flex-wrap items-center gap-2 rounded-md border p-2.5 text-sm"
+                      className="flex flex-wrap items-center gap-2 rounded-md border bg-card p-2.5 text-sm"
                     >
                       <SeverityBadge severity={finding.severity} />
                       <span className="font-heading">
@@ -90,7 +90,7 @@ export function ScanDiffSections({ scanId }: ScanDiffSectionsProps) {
                   {diff.resolvedFindings.map((finding) => (
                     <div
                       key={finding.findingId}
-                      className="flex flex-wrap items-center gap-2 rounded-md border p-2.5 text-muted-foreground text-sm"
+                      className="flex flex-wrap items-center gap-2 rounded-md border bg-card p-2.5 text-muted-foreground text-sm"
                     >
                       <span className="font-heading">
                         {finding.packageName}@{finding.packageVersion}
@@ -110,7 +110,7 @@ export function ScanDiffSections({ scanId }: ScanDiffSectionsProps) {
                   {diff.newMajors.map((major, index) => (
                     <div
                       key={index}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-2.5 text-sm"
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-card p-2.5 text-sm"
                     >
                       <span className="font-heading">{major.packageName}</span>
                       <VersionDelta

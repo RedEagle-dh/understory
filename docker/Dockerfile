@@ -45,6 +45,10 @@ RUN chmod +x /app/docker/entrypoint.sh && mkdir -p /data && chown bun:bun /data
 
 USER bun
 VOLUME /data
+# Stamped by CI from the release tag (v0.0.1 → the app strips the v);
+# 'dev' disables the update check.
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
 ENV DATABASE_PATH=/data/app.db \
 	PORT=3001 \
 	HOST=0.0.0.0 \

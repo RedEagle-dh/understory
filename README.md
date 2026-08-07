@@ -91,6 +91,7 @@ Everything is configured through environment variables — see [.env.example](.e
 | `ENABLE_LOCKFILE_REGEN` | no | Regenerate lockfiles in PRs (default `true`) |
 | `DISABLE_OSV` | no | Skip the OSV.dev advisory source |
 | `METRICS_ENABLED` / `METRICS_TOKEN` | no | Prometheus `/metrics`, optionally bearer-gated |
+| `UPDATE_CHECK` | no | Check GitHub releases for a newer version and show a notice in the UI (default `true`; set `false` for air-gapped installs) |
 
 > [!TIP]
 > Use a **fine-grained personal access token** with `contents: read/write` and `pull requests: read/write` scoped to the repositories you track. Tokens can be set globally or per project in the UI, and are only ever stored sealed.

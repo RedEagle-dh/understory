@@ -17,8 +17,8 @@ import type { LucideIcon } from "lucide-react"
 import {
   Bell,
   FolderKanban,
-  FolderPlus,
   LayoutDashboard,
+  SlidersHorizontal,
   UserCircle,
   Users,
 } from "lucide-react"
@@ -126,13 +126,6 @@ export function AppSidebar() {
                 exact
               />
               <RecentProjects />
-              <RoleGate capability="createProject">
-                <NavLink
-                  to="/projects/new"
-                  icon={FolderPlus}
-                  label="Add project"
-                />
-              </RoleGate>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -150,6 +143,13 @@ export function AppSidebar() {
               </RoleGate>
               <RoleGate capability="manageUsers">
                 <NavLink to="/settings/users" icon={Users} label="Users" />
+              </RoleGate>
+              <RoleGate capability="manageSettings">
+                <NavLink
+                  to="/settings/defaults"
+                  icon={SlidersHorizontal}
+                  label="Defaults"
+                />
               </RoleGate>
               <NavLink
                 to="/settings/profile"

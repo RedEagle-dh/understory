@@ -37,7 +37,7 @@ function ProfileSettings() {
         title="Profile"
         description="Your name, email, and password."
       />
-      <div className="flex max-w-lg flex-col gap-6">
+      <div className="flex flex-col gap-6">
         <QueryBoundary
           query={session}
           skeleton={<div className="h-40 animate-pulse rounded-lg bg-muted" />}

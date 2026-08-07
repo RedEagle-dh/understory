@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, redirect } from "@tanstack/react-router"
+import { PageColumn } from "@/components/states/page-column"
 import { PageHeader } from "@/components/states/page-header"
 import { QueryBoundary } from "@/components/states/query-boundary"
 import { RuleList } from "@/features/notifications/components/rule-list"
@@ -27,14 +28,14 @@ function ProjectSettings() {
   const query = useQuery(projectQueryOptions(projectId))
 
   return (
-    <>
+    <PageColumn>
       <PageHeader
         title="Project settings"
         description="Repository connection, scan schedule, and danger zone for this project."
       />
       <QueryBoundary query={query}>
         {(project) => (
-          <div className="flex max-w-2xl flex-col gap-6">
+          <div className="flex flex-col gap-6">
             <RepositoryCard project={project} />
             <AccessTokenCard project={project} />
             <ScanningCard project={project} />
@@ -45,6 +46,6 @@ function ProjectSettings() {
           </div>
         )}
       </QueryBoundary>
-    </>
+    </PageColumn>
   )
 }

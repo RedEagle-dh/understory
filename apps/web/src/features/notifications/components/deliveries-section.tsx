@@ -11,9 +11,10 @@ import {
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip"
 import { cn } from "@workspace/ui/lib/utils"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, Inbox } from "lucide-react"
 import { useState } from "react"
 import { RelativeTime } from "@/components/common/relative-time"
+import { EmptyState } from "@/components/states/empty-state"
 import { QueryBoundary } from "@/components/states/query-boundary"
 import type { DeliveryStatus } from "../api"
 import {
@@ -67,9 +68,11 @@ export function DeliveriesSection({ channelId }: DeliveriesSectionProps) {
                 }
                 empty={(data) => data.items.length === 0}
                 emptyState={
-                  <p className="text-muted-foreground text-sm">
-                    No deliveries yet.
-                  </p>
+                  <EmptyState
+                    icon={Inbox}
+                    title="No deliveries yet"
+                    description="Once a notification rule fires, deliveries and their status show up here."
+                  />
                 }
               >
                 {(data) => (
@@ -77,7 +80,7 @@ export function DeliveriesSection({ channelId }: DeliveriesSectionProps) {
                     {data.items.map((delivery) => (
                       <div
                         key={delivery.id}
-                        className="flex flex-wrap items-center gap-3 rounded-md border px-3 py-2 text-sm"
+                        className="flex flex-wrap items-center gap-3 rounded-md border bg-card px-3 py-2 text-sm"
                       >
                         <span className="min-w-0 flex-1 truncate">
                           {delivery.title ??

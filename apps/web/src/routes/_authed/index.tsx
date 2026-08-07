@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { createFileRoute, Link } from "@tanstack/react-router"
-import { Button } from "@workspace/ui/components/button"
+import { createFileRoute } from "@tanstack/react-router"
 import { FolderKanban } from "lucide-react"
 import { RoleGate } from "@/components/common/role-gate"
 import { EmptyState } from "@/components/states/empty-state"
@@ -11,6 +10,7 @@ import { FleetStats } from "@/features/dashboard/components/fleet-stats"
 import { RecentScans } from "@/features/dashboard/components/recent-scans"
 import { VulnTrendChart } from "@/features/dashboard/components/vuln-trend-chart"
 import { WorstProjects } from "@/features/dashboard/components/worst-projects"
+import { AddProjectButton } from "@/features/projects/components/add-project-button"
 
 export const Route = createFileRoute("/_authed/")({
   staticData: { crumb: "Dashboard" },
@@ -43,9 +43,7 @@ function Dashboard() {
             description="Register a GitHub repo to start scanning it for vulnerable and outdated dependencies."
             action={
               <RoleGate capability="createProject">
-                <Button render={<Link to="/projects/new" />}>
-                  Add project
-                </Button>
+                <AddProjectButton />
               </RoleGate>
             }
           />

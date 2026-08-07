@@ -3,7 +3,6 @@ import { Button } from "@workspace/ui/components/button"
 import { UserPlus } from "lucide-react"
 import { useState } from "react"
 import { PageHeader } from "@/components/states/page-header"
-import { GlobalDefaultsCard } from "@/features/admin-settings/components/global-defaults-card"
 import { CreateUserDialog } from "@/features/users/components/create-user-dialog"
 import { UserTable } from "@/features/users/components/user-table"
 
@@ -31,10 +30,7 @@ function UserManagement() {
           </Button>
         }
       />
-      <div className="flex flex-col gap-8">
-        <UserTable />
-        <GlobalDefaultsCard />
-      </div>
+      <UserTable />
       <CreateUserDialog open={createOpen} onOpenChange={setCreateOpen} />
     </>
   )

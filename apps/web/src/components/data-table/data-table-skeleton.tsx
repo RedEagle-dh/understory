@@ -11,7 +11,7 @@ export function DataTableSkeleton({
   rows = 8,
 }: DataTableSkeletonProps) {
   return (
-    <div className="overflow-hidden rounded-lg border">
+    <div className="overflow-hidden rounded-lg border bg-card">
       <div className="flex items-center gap-4 border-b p-2">
         {Array.from({ length: columns }, (_, index) => (
           <Skeleton key={index} className="h-4 flex-1" />

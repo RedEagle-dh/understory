@@ -83,7 +83,10 @@ function ProjectLayout() {
           <Link
             to="/projects/$projectId"
             params={{ projectId }}
-            activeOptions={{ exact: true }}
+            // includeSearch: false — the dependencies table keeps its
+            // pagination in search params, and exact matching would compare
+            // those too, leaving the tab unhighlighted.
+            activeOptions={{ exact: true, includeSearch: false }}
             className={tabLinkClass}
           >
             Dependencies

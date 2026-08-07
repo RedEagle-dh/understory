@@ -8,6 +8,7 @@ import {
 import { projects } from './projects';
 import {
 	DEP_TYPES,
+	ECOSYSTEMS,
 	PACKAGE_MANAGERS,
 	SCAN_STATUSES,
 	SCAN_TRIGGERS,
@@ -56,6 +57,8 @@ export const scans = sqliteTable(
 		resolvedFindings: integer('resolved_findings'),
 		errorCode: text('error_code'),
 		errorMessage: text('error_message'),
+		/** JSON string[]: non-fatal scan warnings ("no lockfile found", …). */
+		warningsJson: text('warnings_json'),
 		/** No FK yet: references the user table for manual triggers, added in a later phase. */
 		triggeredBy: text('triggered_by'),
 	},
@@ -82,10 +85,19 @@ export const dependencySets = sqliteTable(
 			.notNull()
 			.references(() => projects.id, { onDelete: 'cascade' }),
 		lockHash: text('lock_hash').notNull(),
+		ecosystem: text('ecosystem', { enum: ECOSYSTEMS })
+			.notNull()
+			.default('npm'),
 		manager: text('manager', { enum: PACKAGE_MANAGERS }).notNull(),
 		packageCount: integer('package_count').notNull(),
 		directCount: integer('direct_count').notNull(),
 		createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+		/**
+		 * JSON string[]: parse warnings ("no lockfile found", …). Stored on the
+		 * SET because parsing only happens when the set is first created —
+		 * every scan that reuses the set must still surface them.
+		 */
+		warningsJson: text('warnings_json'),
 		/** No FK: recorded for provenance only; avoids a scans<->dependencySets reference cycle. */
 		firstScanId: text('first_scan_id').notNull(),
 	},

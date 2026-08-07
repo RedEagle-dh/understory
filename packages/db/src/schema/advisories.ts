@@ -7,7 +7,7 @@ import {
 	text,
 	uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
-import { ADVISORY_SOURCES, SEVERITIES } from './types';
+import { ADVISORY_SOURCES, ECOSYSTEMS, SEVERITIES } from './types';
 
 /**
  * Canonical, cross-project, cross-source advisory record. `id` is the
@@ -63,7 +63,9 @@ export const advisoryRanges = sqliteTable(
 		advisoryId: text('advisory_id')
 			.notNull()
 			.references(() => advisories.id, { onDelete: 'cascade' }),
-		ecosystem: text('ecosystem').notNull().default('npm'),
+		ecosystem: text('ecosystem', { enum: ECOSYSTEMS })
+			.notNull()
+			.default('npm'),
 		packageName: text('package_name').notNull(),
 		vulnerableRange: text('vulnerable_range').notNull(),
 		firstPatched: text('first_patched'),
@@ -72,6 +74,7 @@ export const advisoryRanges = sqliteTable(
 		index('advisory_ranges_package_name_idx').on(t.packageName),
 		uniqueIndex('advisory_ranges_unique').on(
 			t.advisoryId,
+			t.ecosystem,
 			t.packageName,
 			t.vulnerableRange
 		),

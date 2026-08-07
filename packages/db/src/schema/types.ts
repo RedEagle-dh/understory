@@ -25,8 +25,20 @@ export type ScanTrigger = (typeof SCAN_TRIGGERS)[number];
 export const SCAN_STATUSES = ['running', 'ok', 'failed'] as const;
 export type ScanStatus = (typeof SCAN_STATUSES)[number];
 
-export const PACKAGE_MANAGERS = ['npm', 'bun', 'yarn', 'pnpm'] as const;
+export const PACKAGE_MANAGERS = [
+	'npm',
+	'bun',
+	'yarn',
+	'pnpm',
+	'uv',
+	'poetry',
+	'pip',
+] as const;
 export type PackageManager = (typeof PACKAGE_MANAGERS)[number];
+
+/** The package registry universe a dependency set / advisory range lives in. */
+export const ECOSYSTEMS = ['npm', 'pypi'] as const;
+export type Ecosystem = (typeof ECOSYSTEMS)[number];
 
 export const DEP_TYPES = [
 	'prod',

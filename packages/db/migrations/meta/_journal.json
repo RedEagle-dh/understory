@@ -22,6 +22,27 @@
       "when": 1786033429535,
       "tag": "0002_clammy_true_believers",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1786123198956,
+      "tag": "0003_glossy_darkhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1786125613441,
+      "tag": "0004_flawless_living_lightning",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1786125762626,
+      "tag": "0005_fair_franklin_storm",
+      "breakpoints": true
     }
   ]
 }

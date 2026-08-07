@@ -33,7 +33,9 @@ RUN apt-get update \
 # uv regenerates uv.lock for Python auto-PRs — a single static binary.
 # poetry is NOT bundled (it drags in a Python toolchain); poetry projects get
 # manifest-only PRs with a "run `poetry lock`" note unless the operator adds it.
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+# Pinned by version AND digest: this binary runs against third-party
+# repository content, so the build must not track a mutable upstream tag.
+COPY --from=ghcr.io/astral-sh/uv:0.12.3@sha256:2d890623d310b57771ce840f0da5eed5fc6d657da05ffaa45d82797b53fa3abc /uv /usr/local/bin/uv
 
 # The whole installed tree, not just the root node_modules: bun's isolated
 # layout gives every workspace package its own node_modules of symlinks.

@@ -224,9 +224,11 @@ function NewProject() {
                       }
                     />
                     <FieldDescription>
-                      A fine-grained personal access token with{" "}
-                      <code>contents:read</code> access, required for private
-                      repos and to avoid rate limits. See{" "}
+                      A fine-grained personal access token, required for
+                      private repos and to avoid rate limits.{" "}
+                      <code>contents:read</code> is enough for scanning; opening
+                      update PRs needs <code>contents</code> and{" "}
+                      <code>pull requests</code> read/write. See{" "}
                       <a
                         href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens"
                         target="_blank"

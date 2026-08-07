@@ -44,8 +44,10 @@ export function AccessTokenCard({ project }: { project: ProjectDetail }) {
       <CardHeader>
         <CardTitle>Access token</CardTitle>
         <CardDescription>
-          A fine-grained GitHub personal access token with{" "}
-          <code>contents:read</code> access, used to read this repository.
+          A fine-grained GitHub personal access token used to read this
+          repository. <code>contents:read</code> is enough for scanning; opening
+          update PRs needs <code>contents</code> and <code>pull requests</code>{" "}
+          read/write.
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -1,46 +1,37 @@
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { cn } from "@workspace/ui/lib/utils"
+import type { DashboardSummary } from "../api"
 
 interface FleetStatsProps {
-  projects: readonly {
-    vulnCounts: {
-      critical: number
-      high: number
-      moderate: number
-      low: number
-    }
-    outdatedCount: number
-  }[]
+  totals: DashboardSummary["totals"]
 }
 
-/** Four quiet KPI tiles: critical, high, total outdated, project count. */
-export function FleetStats({ projects }: FleetStatsProps) {
-  const totals = projects.reduce(
-    (acc, project) => ({
-      critical: acc.critical + project.vulnCounts.critical,
-      high: acc.high + project.vulnCounts.high,
-      outdated: acc.outdated + project.outdatedCount,
-    }),
-    { critical: 0, high: 0, outdated: 0 }
-  )
-
+/** Quiet KPI tiles over the whole fleet, fed by `/api/dashboard`. */
+export function FleetStats({ totals }: FleetStatsProps) {
   const tiles: { label: string; value: number; tint?: string }[] = [
     {
       label: "Critical",
-      value: totals.critical,
-      tint: totals.critical > 0 ? "text-severity-critical" : undefined,
+      value: totals.openFindings.critical,
+      tint:
+        totals.openFindings.critical > 0 ? "text-severity-critical" : undefined,
     },
     {
       label: "High",
-      value: totals.high,
-      tint: totals.high > 0 ? "text-severity-high" : undefined,
+      value: totals.openFindings.high,
+      tint: totals.openFindings.high > 0 ? "text-severity-high" : undefined,
     },
-    { label: "Outdated", value: totals.outdated },
-    { label: "Projects", value: projects.length },
+    { label: "Outdated", value: totals.outdatedDeps },
+    { label: "Open PRs", value: totals.openPrs },
+    {
+      label: "Failing scans",
+      value: totals.failingProjects,
+      tint: totals.failingProjects > 0 ? "text-destructive" : undefined,
+    },
+    { label: "Projects", value: totals.projects },
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {tiles.map((tile) => (
         <Card key={tile.label} size="sm">
           <CardContent className="gap-0.5">

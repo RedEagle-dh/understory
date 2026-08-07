@@ -10,6 +10,7 @@ import {
 import type { LucideIcon } from "lucide-react"
 import {
   Bell,
+  FolderKanban,
   FolderPlus,
   LayoutDashboard,
   UserCircle,
@@ -28,6 +29,7 @@ interface PaletteItem {
 
 const items: PaletteItem[] = [
   { label: "Dashboard", to: "/", icon: LayoutDashboard },
+  { label: "All projects", to: "/projects", icon: FolderKanban },
   {
     label: "Add project",
     to: "/projects/new",

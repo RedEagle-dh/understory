@@ -8,12 +8,9 @@ import { PageHeader } from "@/components/states/page-header"
 import { QueryBoundary } from "@/components/states/query-boundary"
 import { dashboardQueryOptions } from "@/features/dashboard/api"
 import { FleetStats } from "@/features/dashboard/components/fleet-stats"
-import { ProjectGrid } from "@/features/dashboard/components/project-grid"
+import { RecentScans } from "@/features/dashboard/components/recent-scans"
 import { VulnTrendChart } from "@/features/dashboard/components/vuln-trend-chart"
-import {
-  projectsQueryOptions,
-  useInvalidateFleetOnScanComplete,
-} from "@/features/projects/api"
+import { WorstProjects } from "@/features/dashboard/components/worst-projects"
 
 export const Route = createFileRoute("/_authed/")({
   staticData: { crumb: "Dashboard" },
@@ -21,27 +18,24 @@ export const Route = createFileRoute("/_authed/")({
   component: Dashboard,
 })
 
-function TrendSection() {
-  const query = useQuery(dashboardQueryOptions())
-  // The trend is supplementary — render nothing on error rather than a
-  // second error surface next to the projects grid.
-  if (query.data === undefined) return null
-  return <VulnTrendChart trend={query.data.trend} />
-}
-
 function Dashboard() {
-  const query = useQuery(projectsQueryOptions())
-  useInvalidateFleetOnScanComplete(query.data?.projects)
+  const query = useQuery({
+    ...dashboardQueryOptions(),
+    // Poll while anything is in flight so the feed and tiles converge on
+    // their own — same cadence the projects list uses.
+    refetchInterval: (q) =>
+      (q.state.data?.schedulerHealth.runningScans ?? 0) > 0 ? 5000 : false,
+  })
 
   return (
     <>
       <PageHeader
         title="Dashboard"
-        description="An overview of your registered projects and their latest scans."
+        description="Fleet-wide health: open findings, activity, and the 30-day trend."
       />
       <QueryBoundary
         query={query}
-        empty={(data) => data.projects.length === 0}
+        empty={(data) => data.totals.projects === 0}
         emptyState={
           <EmptyState
             icon={FolderKanban}
@@ -59,9 +53,12 @@ function Dashboard() {
       >
         {(data) => (
           <div className="flex flex-col gap-6">
-            <FleetStats projects={data.projects} />
-            <TrendSection />
-            <ProjectGrid projects={data.projects} />
+            <FleetStats totals={data.totals} />
+            <VulnTrendChart trend={data.trend} />
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <WorstProjects projects={data.worstProjects} />
+              <RecentScans scans={data.recentScans} />
+            </div>
           </div>
         )}
       </QueryBoundary>

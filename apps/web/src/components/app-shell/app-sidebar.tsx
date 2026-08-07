@@ -118,7 +118,12 @@ export function AppSidebar() {
           <SidebarGroupLabel>Projects</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <NavLink to="/" icon={FolderKanban} label="All projects" exact />
+              <NavLink
+                to="/projects"
+                icon={FolderKanban}
+                label="All projects"
+                exact
+              />
               <RecentProjects />
               <RoleGate capability="createProject">
                 <NavLink

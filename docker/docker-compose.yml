@@ -21,6 +21,7 @@ services:
       SCAN_CONCURRENCY: ${SCAN_CONCURRENCY:-3}
       ENABLE_LOCKFILE_REGEN: ${ENABLE_LOCKFILE_REGEN:-true}
       TRUST_PROXY: ${TRUST_PROXY:-false}
+      UPDATE_CHECK: ${UPDATE_CHECK:-true}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       HOST: 0.0.0.0
 

@@ -26,6 +26,7 @@ import { RoleGate } from "@/components/common/role-gate"
 import { Wordmark } from "@/components/common/wordmark"
 import { projectsQueryOptions } from "@/features/projects/api"
 import { NavUser } from "./nav-user"
+import { UpdateBadge } from "./update-badge"
 
 const RECENT_PROJECTS_LIMIT = 8
 
@@ -160,6 +161,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
+        <UpdateBadge />
         <NavUser />
       </SidebarFooter>
     </Sidebar>

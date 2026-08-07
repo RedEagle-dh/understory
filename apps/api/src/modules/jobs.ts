@@ -85,6 +85,21 @@ export function jobsModule() {
 				},
 			});
 
+			const updateCheck = job({
+				id: 'update.check',
+				schedule: { cron: '23 */12 * * *' },
+				timeoutMs: 60_000,
+				handler: async (ctx) => {
+					const status = await env.updateCheckService.check();
+					if (status.updateAvailable) {
+						ctx.log.info('update available', {
+							current: status.currentVersion,
+							latest: status.latestVersion,
+						});
+					}
+				},
+			});
+
 			const retentionPrune = job({
 				id: 'retention.prune',
 				schedule: { cron: '40 4 * * *' },
@@ -102,6 +117,7 @@ export function jobsModule() {
 					notificationsRetry,
 					notificationsDigest,
 					advisoryRefresh,
+					updateCheck,
 					retentionPrune,
 				] as const,
 			};

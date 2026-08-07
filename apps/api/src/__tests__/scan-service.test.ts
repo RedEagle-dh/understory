@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { createNpmClient, createOsvClient } from '@workspace/audit-engine';
+import {
+	createNpmClient,
+	createOsvClient,
+	createPypiClient,
+} from '@workspace/audit-engine';
 import { createDb, runMigrations, schema } from '@workspace/db';
 import { createSecretBox } from '@workspace/db/crypto';
 import { eq } from 'drizzle-orm';
@@ -128,6 +132,84 @@ const PACKUMENTS: Record<string, unknown> = {
 const GITHUB_URL = 'https://api.github.com';
 const REGISTRY_URL = 'https://registry.npmjs.org';
 const OSV_URL = 'https://api.osv.dev';
+const PYPI_URL = 'https://pypi.org';
+
+/* -------------------------------------------------------------------------- */
+/* Python fixture repository                                                  */
+/* -------------------------------------------------------------------------- */
+
+const PYPROJECT_TOML = `
+[project]
+name = "fixture-py"
+version = "0.1.0"
+dependencies = ["requests>=2.19"]
+`;
+
+const UV_LOCK = `
+version = 1
+
+[[package]]
+name = "fixture-py"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [{ name = "requests" }]
+
+[[package]]
+name = "requests"
+version = "2.19.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [{ name = "urllib3" }]
+
+[[package]]
+name = "urllib3"
+version = "1.23"
+source = { registry = "https://pypi.org/simple" }
+`;
+
+const GHSA_PY = 'GHSA-x84v-xcm2-53pg';
+const CVE_PY = 'CVE-2018-18074';
+
+const OSV_PY_VULN = {
+	id: GHSA_PY,
+	aliases: [CVE_PY],
+	summary: 'requests exposes Authorization header to redirect targets',
+	affected: [
+		{
+			package: { name: 'requests', ecosystem: 'PyPI' },
+			ranges: [
+				{
+					type: 'ECOSYSTEM',
+					events: [{ introduced: '0' }, { fixed: '2.20.0' }],
+				},
+			],
+		},
+	],
+	database_specific: { severity: 'MODERATE' },
+	published: '2018-10-29T12:00:00Z',
+	modified: '2023-06-01T00:00:00Z',
+};
+
+function pypiRelease(uploaded: string): { upload_time_iso_8601: string }[] {
+	return [{ upload_time_iso_8601: uploaded }];
+}
+
+const PYPI_PROJECTS: Record<string, unknown> = {
+	requests: {
+		info: { name: 'requests', version: '2.32.3' },
+		releases: {
+			'2.19.0': pypiRelease('2018-06-14T00:00:00Z'),
+			'2.20.0': pypiRelease('2018-10-18T00:00:00Z'),
+			'2.32.3': pypiRelease('2024-05-29T00:00:00Z'),
+		},
+	},
+	urllib3: {
+		info: { name: 'urllib3', version: '2.2.2' },
+		releases: {
+			'1.23': pypiRelease('2018-06-05T00:00:00Z'),
+			'2.2.2': pypiRelease('2024-06-17T00:00:00Z'),
+		},
+	},
+};
 
 /* -------------------------------------------------------------------------- */
 /* Harness                                                                    */
@@ -149,7 +231,10 @@ interface Harness {
 		lodashVersion: string;
 		commitSha: string;
 		githubFails: boolean;
+		/** Serve the Python fixture repo instead of the npm one. */
+		pythonRepo: boolean;
 		osvQueries: number;
+		npmBulkCalls: number;
 		bumpCalls: import('../services/ports').AutoBumpInput[];
 	};
 }
@@ -172,7 +257,9 @@ function makeHarness(): Harness {
 		lodashVersion: '4.17.15',
 		commitSha: 'sha-1',
 		githubFails: false,
+		pythonRepo: false,
 		osvQueries: 0,
+		npmBulkCalls: 0,
 		bumpCalls: [] as import('../services/ports').AutoBumpInput[],
 	};
 
@@ -196,11 +283,17 @@ function makeHarness(): Harness {
 			if (path.includes('/git/trees/')) {
 				return json({
 					truncated: false,
-					tree: [
-						{ path: 'package.json', type: 'blob' },
-						{ path: 'package-lock.json', type: 'blob' },
-						{ path: 'README.md', type: 'blob' },
-					],
+					tree: state.pythonRepo
+						? [
+								{ path: 'pyproject.toml', type: 'blob' },
+								{ path: 'uv.lock', type: 'blob' },
+								{ path: 'README.md', type: 'blob' },
+							]
+						: [
+								{ path: 'package.json', type: 'blob' },
+								{ path: 'package-lock.json', type: 'blob' },
+								{ path: 'README.md', type: 'blob' },
+							],
 				});
 			}
 			if (path.includes('/contents/package-lock.json')) {
@@ -209,6 +302,12 @@ function makeHarness(): Harness {
 			if (path.includes('/contents/package.json')) {
 				return new Response(PACKAGE_JSON);
 			}
+			if (path.includes('/contents/pyproject.toml')) {
+				return new Response(PYPROJECT_TOML);
+			}
+			if (path.includes('/contents/uv.lock')) {
+				return new Response(UV_LOCK);
+			}
 			return json({ message: 'not found' }, 404);
 		}
 
@@ -216,6 +315,7 @@ function makeHarness(): Harness {
 		if (url.startsWith(REGISTRY_URL)) {
 			const path = url.slice(REGISTRY_URL.length);
 			if (path === '/-/npm/v1/security/advisories/bulk') {
+				state.npmBulkCalls += 1;
 				const requested = JSON.parse(
 					String(init?.body ?? '{}')
 				) as Record<string, string[]>;
@@ -245,12 +345,29 @@ function makeHarness(): Harness {
 			if (url.endsWith('/v1/querybatch')) {
 				state.osvQueries += 1;
 				const payload = JSON.parse(String(init?.body ?? '{}')) as {
-					queries: { package: { name: string }; version: string }[];
+					queries: {
+						package: { name: string; ecosystem?: string };
+						version: string;
+					}[];
 				};
 				return json({
-					results: payload.queries.map((query) =>
-						query.package.name === 'lodash' &&
-						query.version !== '4.17.21'
+					results: payload.queries.map((query) => {
+						if (
+							query.package.ecosystem === 'PyPI' &&
+							query.package.name === 'requests' &&
+							query.version === '2.19.0'
+						) {
+							return {
+								vulns: [
+									{
+										id: GHSA_PY,
+										modified: OSV_PY_VULN.modified,
+									},
+								],
+							};
+						}
+						return query.package.name === 'lodash' &&
+							query.version !== '4.17.21'
 							? {
 									vulns: [
 										{
@@ -259,12 +376,23 @@ function makeHarness(): Harness {
 										},
 									],
 								}
-							: {}
-					),
+							: {};
+					}),
 				});
 			}
 			if (url.endsWith(`/v1/vulns/${CVE}`)) return json(OSV_VULN);
+			if (url.endsWith(`/v1/vulns/${GHSA_PY}`)) return json(OSV_PY_VULN);
 			return json({}, 404);
+		}
+
+		/* ------------------------------- PyPI --------------------------- */
+		if (url.startsWith(PYPI_URL)) {
+			const match = /^\/pypi\/([^/]+)\/json$/.exec(
+				url.slice(PYPI_URL.length)
+			);
+			const project =
+				match === null ? undefined : PYPI_PROJECTS[match[1] ?? ''];
+			return project === undefined ? json({}, 404) : json(project);
 		}
 
 		throw new Error(`unexpected fetch: ${url}`);
@@ -289,6 +417,10 @@ function makeHarness(): Harness {
 			fetch: fakeFetch,
 			cache: createRegistryCachePort(registryCache),
 			registryUrl: REGISTRY_URL,
+		}),
+		pypi: createPypiClient({
+			fetch: fakeFetch,
+			cache: createRegistryCachePort(registryCache),
 		}),
 		osv: createOsvClient({ fetch: fakeFetch, baseUrl: OSV_URL }),
 		secretBox: createSecretBox({
@@ -391,6 +523,62 @@ describe('scan service', () => {
 		// A first observation is never a "latest just changed" signal.
 		expect(lodash?.latestChangedAt).toBeNull();
 		expect(scan?.outdatedCount).toBe(1);
+	});
+
+	test('pypi repo: parses uv.lock, matches OSV advisories, computes fix + outdated', async () => {
+		harness.state.pythonRepo = true;
+		const project = await makeProject(harness);
+		const result = await harness.service.runScan(project.id, 'manual');
+
+		expect(result.status).toBe('ok');
+		expect(result.warnings).toEqual([]);
+
+		// The set is pypi/uv and holds requests + urllib3 (root excluded).
+		const sets = await harness.db.select().from(schema.dependencySets);
+		expect(sets).toHaveLength(1);
+		expect(sets[0]?.ecosystem).toBe('pypi');
+		expect(sets[0]?.manager).toBe('uv');
+
+		const scan = await harness.stores.scans.get(result.scanId);
+		expect(scan?.totalDeps).toBe(2);
+		expect(scan?.directDeps).toBe(1);
+
+		// npm's bulk advisory endpoint is never consulted for a pypi scan.
+		expect(harness.state.npmBulkCalls).toBe(0);
+
+		// The OSV advisory landed with a pypi-scoped range.
+		const ranges = await harness.db.select().from(schema.advisoryRanges);
+		expect(ranges).toHaveLength(1);
+		expect(ranges[0]?.ecosystem).toBe('pypi');
+		expect(ranges[0]?.packageName).toBe('requests');
+		expect(ranges[0]?.vulnerableRange).toBe('<2.20.0');
+
+		// Finding with a PEP 440-computed fix.
+		const findings = await harness.db.select().from(schema.findings);
+		expect(findings).toHaveLength(1);
+		const finding = findings[0];
+		expect(finding?.advisoryId).toBe(GHSA_PY);
+		expect(finding?.packageName).toBe('requests');
+		expect(finding?.packageVersion).toBe('2.19.0');
+		expect(finding?.severity).toBe('moderate');
+		expect(finding?.isDirect).toBe(true);
+		expect(finding?.fixedIn).toBe('2.20.0');
+		expect(finding?.fixType).toBe('minor');
+		expect(finding?.fixWithinRange).toBe(true);
+
+		// Outdated pass answers from the PyPI project document.
+		const statuses = await harness.stores.dependencyStatus.forProject(
+			project.id
+		);
+		const requests = statuses.find((row) => row.packageName === 'requests');
+		expect(requests?.latestVersion).toBe('2.32.3');
+		expect(requests?.wantedVersion).toBe('2.32.3');
+		expect(requests?.updateKind).toBe('minor');
+		const urllib3 = statuses.find((row) => row.packageName === 'urllib3');
+		expect(urllib3?.latestVersion).toBe('2.2.2');
+		expect(urllib3?.updateKind).toBe('major');
+		expect(scan?.outdatedCount).toBe(2);
+		expect(scan?.majorOutdatedCount).toBe(1);
 	});
 
 	test('scan 2 with an identical lockfile reuses the set and produces an empty diff', async () => {

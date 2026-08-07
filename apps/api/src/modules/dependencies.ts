@@ -6,7 +6,6 @@ import {
 	DependencyListItem,
 	DependencyOccurrence,
 	DependencyStatusView,
-	DepType,
 	PACKAGE_NAME_PATTERN,
 	PeerIssueView,
 	UpdateKind,
@@ -23,9 +22,11 @@ const PACKAGE_NAME_RE = new RegExp(PACKAGE_NAME_PATTERN);
 
 const ListQuery = t.Object({
 	q: t.Optional(t.String({ maxLength: 200 })),
-	depType: t.Optional(DepType),
+	/** One dep type or a comma-separated list (`prod,dev`). */
+	depType: t.Optional(t.String({ maxLength: 100 })),
 	direct: t.Optional(t.Boolean()),
-	updateKind: t.Optional(UpdateKind),
+	/** One update kind or a comma-separated list (`major,minor`). */
+	updateKind: t.Optional(t.String({ maxLength: 60 })),
 	hasVuln: t.Optional(t.Boolean()),
 	workspace: t.Optional(t.String({ maxLength: 400 })),
 	page: t.Optional(t.Number({ minimum: 1, default: 1 })),
@@ -38,6 +39,35 @@ const ListQuery = t.Object({
 		])
 	),
 });
+
+const DEP_TYPE_VALUES = new Set([
+	'prod',
+	'dev',
+	'peer',
+	'optional',
+	'peer_optional',
+]);
+const UPDATE_KIND_VALUES = new Set(['none', 'patch', 'minor', 'major']);
+
+/** `"prod,dev"` → `['prod','dev']`; rejects unknown values with a 400. */
+function parseCsvFilter<T extends string>(
+	value: string | undefined,
+	allowed: ReadonlySet<string>,
+	label: string
+): T[] | undefined {
+	if (value === undefined || value.trim() === '') return undefined;
+	const parts = value
+		.split(',')
+		.map((part) => part.trim())
+		.filter((part) => part !== '');
+	const invalid = parts.filter((part) => !allowed.has(part));
+	if (invalid.length > 0) {
+		throw new InvalidInputError(
+			`invalid ${label} filter value: ${invalid.join(', ')}`
+		);
+	}
+	return parts as T[];
+}
 
 function toStatusView(row: DependencyStatusRow) {
 	return {
@@ -150,9 +180,17 @@ export function dependenciesModule() {
 						setId,
 						{
 							q: ctx.query.q,
-							depType: ctx.query.depType,
+							depType: parseCsvFilter(
+								ctx.query.depType,
+								DEP_TYPE_VALUES,
+								'depType'
+							),
 							direct: ctx.query.direct,
-							updateKind: ctx.query.updateKind,
+							updateKind: parseCsvFilter(
+								ctx.query.updateKind,
+								UPDATE_KIND_VALUES,
+								'updateKind'
+							),
 							hasVuln: ctx.query.hasVuln,
 							workspace: ctx.query.workspace,
 							page,

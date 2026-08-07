@@ -1,10 +1,11 @@
 import type { LoggerPort } from '@declarativejs/core';
 import {
+	ECOSYSTEMS,
+	ecosystemFor,
 	mergeAdvisories,
 	normalizeOsvVuln,
 	type OsvClient,
 	type OsvVuln,
-	satisfiesRange,
 } from '@workspace/audit-engine';
 import type { AdvisoriesStore } from '../stores/advisories';
 import type { FindingsStore } from '../stores/findings';
@@ -110,8 +111,12 @@ export function createAdvisoryRefreshService(
 				};
 			}
 
-			const normalized = changed.map((entry) =>
-				normalizeOsvVuln(entry.vuln)
+			// One OSV record can affect several ecosystems; normalize once per
+			// ecosystem and let the merge union the (ecosystem-tagged) ranges.
+			const normalized = changed.flatMap((entry) =>
+				ECOSYSTEMS.map((port) =>
+					normalizeOsvVuln(entry.vuln, { ecosystem: port.ecosystem })
+				)
 			);
 			const merged = mergeAdvisories([normalized]);
 			if (merged.length > 0) await deps.advisories.upsertMerged(merged);
@@ -154,12 +159,14 @@ export function createAdvisoryRefreshService(
 						resolveIds.push(finding.id);
 						continue;
 					}
+					// Each stored range carries its ecosystem; evaluate it with
+					// that ecosystem's own version semantics.
 					const stillMatches = detail.ranges
 						.filter(
 							(range) => range.packageName === finding.packageName
 						)
 						.some((range) =>
-							satisfiesRange(
+							ecosystemFor(range.ecosystem).versioning.satisfies(
 								finding.packageVersion,
 								range.vulnerableRange
 							)

@@ -33,7 +33,8 @@ function makeService(overrides: {
 	fetchImpl?: typeof fetch;
 }) {
 	return createUpdateCheckService({
-		fetchImpl: overrides.fetchImpl ?? makeFetch(() => releaseResponse('v9.9.9')),
+		fetchImpl:
+			overrides.fetchImpl ?? makeFetch(() => releaseResponse('v9.9.9')),
 		currentVersion: overrides.currentVersion ?? '0.0.1',
 		repo: REPO,
 		apiUrl: API_URL,

@@ -162,10 +162,97 @@ export function createPullRequestsStore(db: Db) {
 					}
 				});
 			} catch (error) {
-				if (isUniqueViolation(error)) return null;
+				if (isUniqueViolation(error)) {
+					// The branch name is already claimed. For a live row
+					// (creating/open) that IS the idempotency answer — but a
+					// FAILED or user-closed attempt is a tombstone, and it must
+					// not wedge the deterministic branch forever. Reclaim it in
+					// place as a fresh attempt.
+					return this.reclaimTerminal(input, now);
+				}
 				throw error;
 			}
 			return row;
+		},
+
+		/**
+		 * Flip a `failed`/`closed` row for `(projectId, branch)` back to
+		 * `creating` and replace its bumps — the retry path of
+		 * {@link createPending}. Returns `null` when the row is live (a real
+		 * duplicate) or gone.
+		 */
+		reclaimTerminal(
+			input: CreatePullRequestInput,
+			now: Date
+		): PullRequestRow | null {
+			let revived: PullRequestRow | null = null;
+			db.transaction((tx) => {
+				const existing = tx
+					.select()
+					.from(schema.pullRequests)
+					.where(
+						and(
+							eq(schema.pullRequests.projectId, input.projectId),
+							eq(schema.pullRequests.branch, input.branch)
+						)
+					)
+					.get();
+				if (existing === undefined) return;
+				if (
+					existing.state !== 'failed' &&
+					existing.state !== 'closed'
+				) {
+					return;
+				}
+
+				const reset = {
+					kind: input.kind,
+					state: 'creating' as const,
+					title: input.title,
+					baseBranch: input.baseBranch,
+					number: null,
+					url: null,
+					commitSha: null,
+					lockfileUpdated: false,
+					createdByUserId: input.createdByUserId ?? null,
+					// A reclaim IS a new attempt; the creating-timeout burial
+					// clock (`createdAt`) must restart with it.
+					createdAt: now,
+					updatedAt: now,
+					mergedAt: null,
+					closedAt: null,
+					lastSyncedAt: null,
+					errorMessage: null,
+				};
+				tx.update(schema.pullRequests)
+					.set(reset)
+					.where(eq(schema.pullRequests.id, existing.id))
+					.run();
+				tx.delete(schema.pullRequestBumps)
+					.where(
+						eq(schema.pullRequestBumps.pullRequestId, existing.id)
+					)
+					.run();
+				if (input.bumps.length > 0) {
+					tx.insert(schema.pullRequestBumps)
+						.values(
+							input.bumps.map((bump) => ({
+								id: id(),
+								pullRequestId: existing.id,
+								packageName: bump.packageName,
+								workspace: bump.workspace,
+								fromRange: bump.fromRange,
+								fromVersion: bump.fromVersion,
+								toVersion: bump.toVersion,
+								advisoryId: bump.advisoryId,
+								findingId: bump.findingId,
+							}))
+						)
+						.run();
+				}
+				revived = { ...existing, ...reset };
+			});
+			return revived;
 		},
 
 		async byId(pullRequestId: string): Promise<PullRequestRow | null> {

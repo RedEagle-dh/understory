@@ -43,6 +43,7 @@ export const env = {
 	GITHUB_API_URL: process.env.GITHUB_API_URL ?? 'https://api.github.com',
 	NPM_REGISTRY_URL:
 		process.env.NPM_REGISTRY_URL ?? 'https://registry.npmjs.org',
+	PYPI_REGISTRY_URL: process.env.PYPI_REGISTRY_URL ?? 'https://pypi.org',
 	OSV_API_URL: process.env.OSV_API_URL ?? 'https://api.osv.dev',
 	DISABLE_OSV: process.env.DISABLE_OSV === 'true',
 	SCAN_CONCURRENCY: optionalNumber('SCAN_CONCURRENCY', 3),
@@ -57,7 +58,8 @@ export const env = {
 	APP_VERSION: process.env.APP_VERSION ?? 'dev',
 	UPDATE_CHECK: process.env.UPDATE_CHECK !== 'false',
 	/** GitHub repo whose releases are the update feed. */
-	UPDATE_CHECK_REPO: process.env.UPDATE_CHECK_REPO ?? 'RedEagle-dh/understory',
+	UPDATE_CHECK_REPO:
+		process.env.UPDATE_CHECK_REPO ?? 'RedEagle-dh/understory',
 	METRICS_ENABLED: process.env.METRICS_ENABLED === 'true',
 	METRICS_TOKEN: process.env.METRICS_TOKEN,
 	/** Static SPA directory served for non-/api paths in production ('' disables). */

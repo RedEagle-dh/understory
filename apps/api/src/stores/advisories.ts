@@ -1,11 +1,12 @@
 import {
 	type AdvisoryRange,
 	compareSeverity,
+	type Ecosystem,
 	type MergedAdvisory,
 	type Severity,
 } from '@workspace/audit-engine';
 import { type Db, schema } from '@workspace/db';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
 export type AdvisoryRow = typeof schema.advisories.$inferSelect;
 export type AdvisoryRangeRow = typeof schema.advisoryRanges.$inferSelect;
@@ -240,7 +241,7 @@ export function createAdvisoriesStore(db: Db) {
 						tx.insert(schema.advisoryRanges)
 							.values({
 								advisoryId: canonicalId,
-								ecosystem: 'npm',
+								ecosystem: range.ecosystem,
 								packageName: range.packageName,
 								vulnerableRange: range.vulnerableRange,
 								firstPatched: range.firstPatched ?? null,
@@ -248,6 +249,7 @@ export function createAdvisoriesStore(db: Db) {
 							.onConflictDoUpdate({
 								target: [
 									schema.advisoryRanges.advisoryId,
+									schema.advisoryRanges.ecosystem,
 									schema.advisoryRanges.packageName,
 									schema.advisoryRanges.vulnerableRange,
 								],
@@ -315,9 +317,14 @@ export function createAdvisoriesStore(db: Db) {
 			return out;
 		},
 
-		/** Every vulnerable range touching the given packages, with severity. */
+		/**
+		 * Every vulnerable range touching the given packages, with severity.
+		 * Scoped to one ecosystem — `requests` on PyPI and `requests` on npm
+		 * are unrelated packages that must never see each other's advisories.
+		 */
 		async rangesForPackages(
-			names: readonly string[]
+			names: readonly string[],
+			ecosystem: Ecosystem = 'npm'
 		): Promise<Map<string, PackageRangeMatch[]>> {
 			const out = new Map<string, PackageRangeMatch[]>();
 			for (const chunk of chunked([...new Set(names)], IN_CHUNK)) {
@@ -339,7 +346,12 @@ export function createAdvisoriesStore(db: Db) {
 							schema.advisoryRanges.advisoryId
 						)
 					)
-					.where(inArray(schema.advisoryRanges.packageName, chunk));
+					.where(
+						and(
+							eq(schema.advisoryRanges.ecosystem, ecosystem),
+							inArray(schema.advisoryRanges.packageName, chunk)
+						)
+					);
 				for (const row of rows) {
 					if (row.withdrawnAt !== null) continue;
 					const list = out.get(row.packageName);
@@ -379,7 +391,7 @@ export function createAdvisoriesStore(db: Db) {
 					tx.insert(schema.advisoryRanges)
 						.values({
 							advisoryId,
-							ecosystem: 'npm',
+							ecosystem: range.ecosystem,
 							packageName: range.packageName,
 							vulnerableRange: range.vulnerableRange,
 							firstPatched: range.firstPatched ?? null,

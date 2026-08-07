@@ -1,15 +1,16 @@
 import type { LoggerPort } from '@declarativejs/core';
 import {
-	classifyRange,
+	type Ecosystem,
+	type EcosystemPort,
+	ecosystemFor,
 	type PackageManager,
 	parseJsonManifest,
-	planBump,
+	pep440Versioning,
 	type Severity,
-	satisfiesRange,
+	semverVersioning,
 	type UpdateKind,
-	updateKindBetween,
+	type Versioning,
 } from '@workspace/audit-engine';
-import semver from 'semver';
 import type { GithubClient } from '../adapters/github/client';
 import { createPrWriter, type RepoTarget } from '../adapters/github/pr-writer';
 import type { RepoFile, RepoReader } from '../adapters/github/repo-reader';
@@ -37,6 +38,11 @@ import type { ScansStore } from '../stores/scans';
 import { regenerateLockfile } from './lockfile-regen';
 import type { PrMergedEvent, PrOpenedEvent } from './notification-service';
 import type { AutoPrInput, AutoPrPort } from './ports';
+import {
+	applyPypiRangeEdits,
+	buildPypiManifestIndex,
+	poetryStyleBump,
+} from './pypi-manifests';
 
 /* -------------------------------------------------------------------------- */
 /* Tuning                                                                     */
@@ -60,6 +66,22 @@ const SEVERITY_RANK: Record<Severity, number> = {
 const LOCKFILE_NAMES: Partial<Record<PackageManager, string>> = {
 	npm: 'package-lock.json',
 	bun: 'bun.lock',
+	uv: 'uv.lock',
+	poetry: 'poetry.lock',
+};
+
+/** The manifest file a PR of this ecosystem edits (pip edits requirements.txt directly). */
+const MANIFEST_BASENAME: Record<Ecosystem, string> = {
+	npm: 'package.json',
+	pypi: 'pyproject.toml',
+};
+
+/** The command a human runs to refresh the lockfile when regen was skipped. */
+const LOCKFILE_COMMANDS: Partial<Record<PackageManager, string>> = {
+	npm: 'npm install',
+	bun: 'bun install',
+	uv: 'uv lock',
+	poetry: 'poetry lock',
 };
 
 /* -------------------------------------------------------------------------- */
@@ -185,8 +207,11 @@ export interface PrServiceDeps {
 /* Pure helpers (exported for tests)                                          */
 /* -------------------------------------------------------------------------- */
 
-export function manifestPathFor(workspace: string): string {
-	return workspace === '' ? 'package.json' : `${workspace}/package.json`;
+export function manifestPathFor(
+	workspace: string,
+	basename = 'package.json'
+): string {
+	return workspace === '' ? basename : `${workspace}/${basename}`;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -229,6 +254,9 @@ function depthOf(path: string): number {
 	return path.split('/').length;
 }
 
+/** How a declaration is written in its file — decides the edit strategy. */
+export type DeclarationStyle = 'pep621' | 'poetry' | 'requirements';
+
 /** Where the range that governs a dependency is actually written. */
 export interface ManifestDeclaration {
 	/** What the workspace manifest literally says: `^1.2.3`, `catalog:frontend`. */
@@ -241,6 +269,8 @@ export interface ManifestDeclaration {
 	catalogGroup?: string;
 	/** A `catalog:` range with no matching entry in the root manifest. */
 	missingCatalogEntry: boolean;
+	/** Python declaration syntax; undefined for npm's package.json. */
+	style?: DeclarationStyle;
 }
 
 export interface ManifestIndex {
@@ -478,18 +508,21 @@ export function bodyFor(input: {
 		);
 	}
 
-	const installCommand =
-		input.manager === 'bun' ? 'bun install' : 'npm install';
-	lines.push(
-		'',
-		input.lockfileUpdated
-			? 'The lockfile was regenerated in the same commit.'
-			: `The lockfile was not regenerated${
-					input.lockfileNote === null
-						? ''
-						: ` (${input.lockfileNote})`
-				}; run \`${installCommand}\` before merging.`
-	);
+	// pip has no separate lockfile: the requirements.txt pins ARE the
+	// resolution, and this PR just edited them.
+	if (input.manager !== 'pip') {
+		const installCommand = LOCKFILE_COMMANDS[input.manager] ?? 'an install';
+		lines.push(
+			'',
+			input.lockfileUpdated
+				? 'The lockfile was regenerated in the same commit.'
+				: `The lockfile was not regenerated${
+						input.lockfileNote === null
+							? ''
+							: ` (${input.lockfileNote})`
+					}; run \`${installCommand}\` before merging.`
+		);
+	}
 
 	lines.push(
 		'',
@@ -514,6 +547,8 @@ export interface ManifestRangeEdit {
 interface PlannedEdit extends ManifestRangeEdit {
 	/** Repository-relative path — a workspace manifest, or the root for catalogs. */
 	path: string;
+	/** Python declaration syntax the edit must use; undefined for package.json. */
+	style?: DeclarationStyle;
 }
 
 /** Base-branch manifests, shared by `plan` and the `create` that follows it. */
@@ -598,15 +633,38 @@ function stringifyLike(original: string, value: unknown): string {
 	return `${JSON.stringify(value, null, indent)}${trailing}`;
 }
 
-function maxVersion(versions: readonly string[]): string | null {
+function maxVersion(
+	versions: readonly string[],
+	versioning: Versioning
+): string | null {
 	let best: string | null = null;
 	for (const version of versions) {
-		if (semver.valid(version, { loose: true }) === null) continue;
-		if (best === null || semver.gt(version, best, { loose: true })) {
+		if (!versioning.isValidVersion(version)) continue;
+		if (best === null || versioning.compare(version, best) > 0) {
 			best = version;
 		}
 	}
 	return best;
+}
+
+/**
+ * Ecosystem-blind "is `candidate` newer": the auto-PR grouping runs before
+ * any project context is loaded, so it tries both version grammars.
+ */
+function isNewerVersion(candidate: string, current: string): boolean {
+	if (
+		semverVersioning.isValidVersion(candidate) &&
+		semverVersioning.isValidVersion(current)
+	) {
+		return semverVersioning.compare(candidate, current) > 0;
+	}
+	if (
+		pep440Versioning.isValidVersion(candidate) &&
+		pep440Versioning.isValidVersion(current)
+	) {
+		return pep440Versioning.compare(candidate, current) > 0;
+	}
+	return candidate > current;
 }
 
 function messageOf(error: unknown): string {
@@ -652,6 +710,8 @@ export function createPrService(deps: PrServiceDeps) {
 
 	interface ResolutionContext {
 		project: ProjectRow;
+		ecosystem: Ecosystem;
+		port: EcosystemPort;
 		manager: PackageManager;
 		/** `${workspace}\0${name}` → the most authoritative entry. */
 		entries: Map<string, DependencySetEntryRow>;
@@ -733,6 +793,8 @@ export function createPrService(deps: PrServiceDeps) {
 
 		return {
 			project,
+			ecosystem: setRow.ecosystem,
+			port: ecosystemFor(setRow.ecosystem),
 			manager: setRow.manager,
 			entries,
 			declaredIn,
@@ -757,6 +819,7 @@ export function createPrService(deps: PrServiceDeps) {
 		lockfileRegenAvailable: boolean,
 		index: ManifestIndex | null
 	): { item: PrPlanItem; edit: PlannedEdit | null } {
+		const versioning = context.port.versioning;
 		const workspace = resolveWorkspace(context, selection);
 		const key = `${workspace}${NUL}${selection.name}`;
 		const entry = context.entries.get(key);
@@ -769,7 +832,7 @@ export function createPrService(deps: PrServiceDeps) {
 		const manifestPath =
 			declaration?.editPath ??
 			index?.pathForWorkspace(workspace) ??
-			manifestPathFor(workspace);
+			manifestPathFor(workspace, MANIFEST_BASENAME[context.ecosystem]);
 
 		const fromVersion = entry?.version ?? status?.currentVersion ?? null;
 		const fromRange =
@@ -804,7 +867,8 @@ export function createPrService(deps: PrServiceDeps) {
 			maxVersion(
 				openFindings
 					.map((finding) => finding.fixedIn)
-					.filter((fixedIn): fixedIn is string => fixedIn !== null)
+					.filter((fixedIn): fixedIn is string => fixedIn !== null),
+				versioning
 			) ??
 			status?.latestVersion ??
 			null;
@@ -820,7 +884,7 @@ export function createPrService(deps: PrServiceDeps) {
 			newRange: null,
 			updateKind:
 				fromVersion !== null && toVersion !== null
-					? updateKindBetween(fromVersion, toVersion)
+					? versioning.updateKindBetween(fromVersion, toVersion)
 					: 'none',
 			severity,
 			advisories,
@@ -852,15 +916,13 @@ export function createPrService(deps: PrServiceDeps) {
 		if (toVersion === null) {
 			return drop('no target version is known');
 		}
-		if (semver.valid(toVersion, { loose: true }) === null) {
-			return drop(
-				`target version ${toVersion} is not a valid semver version`
-			);
+		if (!versioning.isValidVersion(toVersion)) {
+			return drop(`target version ${toVersion} is not a valid version`);
 		}
 		if (
 			fromVersion !== null &&
-			semver.valid(fromVersion, { loose: true }) !== null &&
-			!semver.gt(toVersion, fromVersion, { loose: true })
+			versioning.isValidVersion(fromVersion) &&
+			versioning.compare(toVersion, fromVersion) <= 0
 		) {
 			return drop(
 				`already at ${fromVersion}, which is not older than ${toVersion}`
@@ -875,12 +937,12 @@ export function createPrService(deps: PrServiceDeps) {
 				: [];
 
 		// A wildcard or dist-tag range admits every version by construction, and
-		// a semver range may already admit the target: both are lockfile-only.
-		const rangeKind = classifyRange(fromRange);
+		// an evaluable range may already admit the target: both are lockfile-only.
+		const rangeKind = versioning.classifyRange(fromRange);
 		const admitsTarget =
 			rangeKind === 'wildcard' ||
 			rangeKind === 'tag' ||
-			satisfiesRange(toVersion, fromRange);
+			versioning.satisfies(toVersion, fromRange);
 
 		if (admitsTarget) {
 			if (!lockfileRegenAvailable) {
@@ -900,10 +962,16 @@ export function createPrService(deps: PrServiceDeps) {
 			};
 		}
 
-		const bump = planBump({
-			declaredRange: fromRange,
-			targetVersion: toVersion,
-		});
+		// A poetry declaration is rewritten in poetry's own syntax (`^2.0` →
+		// `^2.1.4`); everything else goes through the ecosystem's planBump on
+		// the effective range.
+		const bump =
+			declaration?.style === 'poetry'
+				? poetryStyleBump(declaration.rawRange, toVersion)
+				: context.port.planBump({
+						declaredRange: fromRange,
+						targetVersion: toVersion,
+					});
 		if (!bump.changed) {
 			return drop(
 				bump.reason === 'not-semver'
@@ -935,6 +1003,9 @@ export function createPrService(deps: PrServiceDeps) {
 				...(declaration?.catalogGroup === undefined
 					? {}
 					: { catalogGroup: declaration.catalogGroup }),
+				...(declaration?.style === undefined
+					? {}
+					: { style: declaration.style }),
 			},
 		};
 	}
@@ -948,8 +1019,21 @@ export function createPrService(deps: PrServiceDeps) {
 	 * Every request goes through the ETag-caching client, so a second plan for
 	 * an unchanged repo costs no rate-limit quota.
 	 */
+	function buildIndexFor(
+		ecosystem: Ecosystem,
+		manager: PackageManager,
+		files: readonly RepoFile[]
+	): ManifestIndex | null {
+		if (ecosystem === 'npm') return buildManifestIndex(files);
+		return buildPypiManifestIndex(
+			files,
+			manager === 'poetry' ? 'poetry' : manager === 'pip' ? 'pip' : 'uv'
+		);
+	}
+
 	async function fetchSnapshot(
-		project: ProjectRow
+		project: ProjectRow,
+		context: ResolutionContext
 	): Promise<PlanSnapshot | null> {
 		try {
 			const token = await deps.github.resolveToken(project);
@@ -966,7 +1050,11 @@ export function createPrService(deps: PrServiceDeps) {
 			return {
 				branch,
 				files: snapshot.files,
-				index: buildManifestIndex(snapshot.files),
+				index: buildIndexFor(
+					context.ecosystem,
+					context.manager,
+					snapshot.files
+				),
 			};
 		} catch (error) {
 			log?.warn('pull request plan could not read the base branch', {
@@ -993,7 +1081,7 @@ export function createPrService(deps: PrServiceDeps) {
 			names
 		);
 
-		const snapshot = await fetchSnapshot(project);
+		const snapshot = await fetchSnapshot(project, context);
 		const index = snapshot?.index ?? null;
 
 		const lockfileRegenAvailable =
@@ -1054,15 +1142,17 @@ export function createPrService(deps: PrServiceDeps) {
 		// in a real checkout.
 		const lockfileRegenPlanned =
 			lockfileRegenAvailable && included.length > 0;
-		const lockfileNote = lockfileRegenPlanned
-			? null
-			: !deps.config.enableLockfileRegen
-				? 'lockfile regeneration is disabled on this server'
-				: !project.regenerateLockfile
-					? 'lockfile regeneration is disabled for this project'
-					: LOCKFILE_NAMES[context.manager] === undefined
-						? `lockfile regeneration is not supported for ${context.manager}`
-						: null;
+		// pip has no lockfile at all — its "note: none" is not a limitation.
+		const lockfileNote =
+			lockfileRegenPlanned || context.manager === 'pip'
+				? null
+				: !deps.config.enableLockfileRegen
+					? 'lockfile regeneration is disabled on this server'
+					: !project.regenerateLockfile
+						? 'lockfile regeneration is disabled for this project'
+						: LOCKFILE_NAMES[context.manager] === undefined
+							? `lockfile regeneration is not supported for ${context.manager}`
+							: null;
 
 		const existing =
 			included.length === 0
@@ -1156,6 +1246,7 @@ export function createPrService(deps: PrServiceDeps) {
 		edits: ReadonlyMap<string, PlannedEdit>,
 		snapshot: readonly RepoFile[],
 		index: ManifestIndex | null,
+		ecosystem: Ecosystem,
 		manager: PackageManager
 	): Promise<CommitPlan> {
 		const byPath = new Map(snapshot.map((file) => [file.path, file]));
@@ -1164,7 +1255,8 @@ export function createPrService(deps: PrServiceDeps) {
 		// Several bumps can land in the same file — a monorepo rewriting two
 		// catalog entries edits the root manifest twice — so edits are grouped
 		// per path and applied to ONE copy of it.
-		const editsByPath = new Map<string, ManifestRangeEdit[]>();
+		type CommitEdit = ManifestRangeEdit & { style?: DeclarationStyle };
+		const editsByPath = new Map<string, CommitEdit[]>();
 		for (const item of included) {
 			if (item.status !== 'changesManifest') continue;
 			const planned = edits.get(
@@ -1181,10 +1273,12 @@ export function createPrService(deps: PrServiceDeps) {
 				declaration?.editPath ?? planned?.path ?? item.manifestPath;
 			const catalogGroup =
 				declaration?.catalogGroup ?? planned?.catalogGroup;
-			const edit: ManifestRangeEdit = {
+			const style = declaration?.style ?? planned?.style;
+			const edit: CommitEdit = {
 				packageName: item.packageName,
 				newRange: item.newRange as string,
 				...(catalogGroup === undefined ? {} : { catalogGroup }),
+				...(style === undefined ? {} : { style }),
 			};
 			const bucket = editsByPath.get(path);
 			if (bucket === undefined) editsByPath.set(path, [edit]);
@@ -1198,7 +1292,20 @@ export function createPrService(deps: PrServiceDeps) {
 					`${path} was not found on ${prPlan.baseBranch}`
 				);
 			}
-			const result = applyRangeEdits(source.content, pathEdits);
+			const result =
+				ecosystem === 'npm'
+					? applyRangeEdits(source.content, pathEdits)
+					: applyPypiRangeEdits(
+							source.content,
+							pathEdits.map((edit) => ({
+								packageName: edit.packageName,
+								newRange: edit.newRange,
+								style: edit.style ?? 'pep621',
+							})),
+							basenameOf(path) === 'requirements.txt'
+								? 'requirements'
+								: 'pyproject'
+						);
 			if (result.applied.length === 0) {
 				throw new InvalidInputError(
 					`none of the selected packages are declared in ${path}`
@@ -1231,7 +1338,8 @@ export function createPrService(deps: PrServiceDeps) {
 				const manifests = snapshot
 					.filter(
 						(file) =>
-							basenameOf(file.path) === 'package.json' &&
+							basenameOf(file.path) ===
+								MANIFEST_BASENAME[ecosystem] &&
 							!file.path.includes('node_modules/')
 					)
 					.map((file) => edited.get(file.path) ?? file);
@@ -1246,7 +1354,7 @@ export function createPrService(deps: PrServiceDeps) {
 					),
 				];
 				if (manifests.length === 0) {
-					lockfileNote = 'no root package.json was found';
+					lockfileNote = `no root ${MANIFEST_BASENAME[ecosystem]} was found`;
 				} else {
 					const regenerated = await regenerate({
 						manager,
@@ -1388,6 +1496,8 @@ export function createPrService(deps: PrServiceDeps) {
 			repo: project.repo,
 		};
 
+		const setInfo = await setInfoFor(project);
+
 		// `plan` already read the base branch seconds ago, and the classification
 		// it produced is only valid against THOSE bytes — re-fetching here could
 		// silently edit a manifest the plan never saw. The fetch below is the
@@ -1406,12 +1516,15 @@ export function createPrService(deps: PrServiceDeps) {
 				return {
 					branch,
 					files: fetched.files,
-					index: buildManifestIndex(fetched.files),
+					index: buildIndexFor(
+						setInfo.ecosystem,
+						setInfo.manager,
+						fetched.files
+					),
 				};
 			})());
 		const baseBranch = base.branch;
 
-		const setManager = await managerFor(project);
 		const commit = await buildCommitFiles(
 			project,
 			{ ...prPlan, baseBranch },
@@ -1419,14 +1532,15 @@ export function createPrService(deps: PrServiceDeps) {
 			edits,
 			base.files,
 			base.index,
-			setManager
+			setInfo.ecosystem,
+			setInfo.manager
 		);
 		if (commit.files.length === 0) {
 			// Every included bump was `lockfileOnly` and the lockfile did not
 			// move. Say WHICH of the three causes it was — a bare "no file
 			// changes" leaves the user with nothing to act on.
 			throw new InvalidInputError(
-				`The selected bumps produce no file changes on ${baseBranch}: their declared ranges already allow the target versions, so only ${LOCKFILE_NAMES[setManager] ?? 'the lockfile'} could change — and it did not (${commit.lockfileNote ?? 'no reason was recorded'}).`
+				`The selected bumps produce no file changes on ${baseBranch}: their declared ranges already allow the target versions, so only ${LOCKFILE_NAMES[setInfo.manager] ?? 'the lockfile'} could change — and it did not (${commit.lockfileNote ?? 'no reason was recorded'}).`
 			);
 		}
 
@@ -1457,7 +1571,7 @@ export function createPrService(deps: PrServiceDeps) {
 			counts: prPlan.severityCounts,
 			lockfileUpdated: commit.lockfileUpdated,
 			lockfileNote: commit.lockfileNote,
-			manager: setManager,
+			manager: setInfo.manager,
 		});
 		const pull = await writer.openPull(target, {
 			title: prPlan.title,
@@ -1501,12 +1615,21 @@ export function createPrService(deps: PrServiceDeps) {
 		};
 	}
 
-	async function managerFor(project: ProjectRow): Promise<PackageManager> {
-		if (project.lastSuccessScanId === null) return 'npm';
+	async function setInfoFor(
+		project: ProjectRow
+	): Promise<{ ecosystem: Ecosystem; manager: PackageManager }> {
+		if (project.lastSuccessScanId === null) {
+			return { ecosystem: 'npm', manager: 'npm' };
+		}
 		const scan = await deps.scans.get(project.lastSuccessScanId);
-		if (scan?.dependencySetId == null) return 'npm';
+		if (scan?.dependencySetId == null) {
+			return { ecosystem: 'npm', manager: 'npm' };
+		}
 		const setRow = await deps.dependencySets.byId(scan.dependencySetId);
-		return setRow?.manager ?? 'npm';
+		return {
+			ecosystem: setRow?.ecosystem ?? 'npm',
+			manager: setRow?.manager ?? 'npm',
+		};
 	}
 
 	/** Notifications must never take a PR down with them. */
@@ -1673,9 +1796,7 @@ export function createPrService(deps: PrServiceDeps) {
 					if (
 						current === undefined ||
 						current.toVersion === undefined ||
-						semver.gt(selection.toVersion, current.toVersion, {
-							loose: true,
-						})
+						isNewerVersion(selection.toVersion, current.toVersion)
 					) {
 						grouped.set(key, {
 							name: selection.packageName,

@@ -11,6 +11,7 @@ import {
 	asc,
 	desc,
 	eq,
+	inArray,
 	like,
 	notInArray,
 	type SQL,
@@ -41,14 +42,21 @@ export interface CreateDependencySetInput {
 
 export interface DependencyListFilters {
 	q?: string;
-	depType?: DepType;
+	/** One or several dependency types; empty array = no filter. */
+	depType?: DepType | readonly DepType[];
 	direct?: boolean;
-	updateKind?: UpdateKind;
+	/** One or several update kinds; empty array = no filter. */
+	updateKind?: UpdateKind | readonly UpdateKind[];
 	hasVuln?: boolean;
 	workspace?: string;
 	page: number;
 	pageSize: number;
 	sort?: 'name' | 'severity' | 'updateKind';
+}
+
+function asList<T>(value: T | readonly T[] | undefined): T[] {
+	if (value === undefined) return [];
+	return Array.isArray(value) ? [...value] : [value as T];
 }
 
 export interface DependencyListRow {
@@ -127,6 +135,15 @@ export function createDependencySetsStore(db: Db) {
 				id: id(),
 				projectId: input.projectId,
 				lockHash: input.lockHash,
+				ecosystem: input.graph.ecosystem,
+				warningsJson:
+					input.graph.warnings.length === 0
+						? null
+						: JSON.stringify(
+								input.graph.warnings.map((warning) =>
+									warning.slice(0, 500)
+								)
+							),
 				manager: input.manager,
 				packageCount: dependencies.length,
 				directCount: dependencies.filter(
@@ -245,12 +262,19 @@ export function createDependencySetsStore(db: Db) {
 					)
 			);
 
+			// A status row is per (workspace, package) but a tree can hold the
+			// same package at SEVERAL versions (uv forks per python version).
+			// The row-level update kind therefore treats an entry that already
+			// sits at `latest` as 'none', whatever the shared status row says.
+			const rowUpdateKind = sql<UpdateKind>`case when ${status.latestVersion} is not null and ${entries.version} = ${status.latestVersion} then 'none' else coalesce(${status.updateKind}, 'none') end`;
+
 			const clauses: (SQL | undefined)[] = [eq(entries.setId, setId)];
 			if (filters.q !== undefined && filters.q !== '') {
 				clauses.push(like(entries.name, `%${escapeLike(filters.q)}%`));
 			}
-			if (filters.depType !== undefined) {
-				clauses.push(eq(entries.depType, filters.depType));
+			const depTypes = asList(filters.depType);
+			if (depTypes.length > 0) {
+				clauses.push(inArray(entries.depType, depTypes));
 			}
 			if (filters.direct !== undefined) {
 				clauses.push(eq(entries.isDirect, filters.direct));
@@ -258,8 +282,14 @@ export function createDependencySetsStore(db: Db) {
 			if (filters.workspace !== undefined) {
 				clauses.push(eq(entries.workspace, filters.workspace));
 			}
-			if (filters.updateKind !== undefined) {
-				clauses.push(eq(status.updateKind, filters.updateKind));
+			const updateKinds = asList(filters.updateKind);
+			if (updateKinds.length > 0) {
+				clauses.push(
+					sql`${rowUpdateKind} in (${sql.join(
+						updateKinds.map((kind) => sql`${kind}`),
+						sql`, `
+					)})`
+				);
 			}
 			if (filters.hasVuln === true) {
 				clauses.push(sql`"finding_agg"."open_findings" > 0`);
@@ -358,7 +388,13 @@ export function createDependencySetsStore(db: Db) {
 					currentVersion: row.version,
 					wantedVersion: row.wantedVersion ?? null,
 					latestVersion: row.latestVersion ?? null,
-					updateKind: row.updateKind ?? 'none',
+					// Mirror `rowUpdateKind`: an entry already at `latest` has
+					// no update, even when a sibling version of the package does.
+					updateKind:
+						row.latestVersion !== null &&
+						row.version === row.latestVersion
+							? 'none'
+							: (row.updateKind ?? 'none'),
 					deprecated:
 						row.deprecatedMessage !== null &&
 						row.deprecatedMessage !== undefined,

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseLockfile } from '@workspace/audit-engine';
+import { parseLockfile, parsePypi } from '@workspace/audit-engine';
 import { createDb, runMigrations, schema } from '@workspace/db';
 import { eq } from 'drizzle-orm';
 import { createGithubClient } from '../adapters/github/client';
@@ -859,6 +859,44 @@ describe('pr create', () => {
 		expect(String(pull?.body?.body)).toContain('lockfile was regenerated');
 	});
 
+	test('a failed attempt does not wedge the branch: retry reclaims the row', async () => {
+		// Lockfile-only bump whose regen fails → "no file changes" → row failed.
+		harness.regenResult = { ok: false, reason: 'stub failure' };
+		await expect(
+			harness.service.create(
+				harness.projectId,
+				[{ name: 'wildcard-dep', toVersion: '1.2.0' }],
+				{ kind: 'manual' }
+			)
+		).rejects.toThrow(InvalidInputError);
+
+		const failed = await harness.stores.pullRequests.listForProject(
+			harness.projectId,
+			{ page: 1, pageSize: 10 }
+		);
+		expect(failed.items[0]?.pullRequest.state).toBe('failed');
+
+		// Same selection, same deterministic branch — the retry must reclaim
+		// the failed row instead of reporting "already being created".
+		harness.regenResult = { ok: true, content: '{"regenerated": true}' };
+		const created = await harness.service.create(
+			harness.projectId,
+			[{ name: 'wildcard-dep', toVersion: '1.2.0' }],
+			{ kind: 'manual' }
+		);
+		expect(created.number).toBe(42);
+		expect(created.lockfileUpdated).toBe(true);
+
+		// One row total: the tombstone was revived, not duplicated.
+		const rows = await harness.stores.pullRequests.listForProject(
+			harness.projectId,
+			{ page: 1, pageSize: 10 }
+		);
+		expect(rows.items).toHaveLength(1);
+		expect(rows.items[0]?.pullRequest.state).toBe('open');
+		expect(rows.items[0]?.pullRequest.errorMessage).toBeNull();
+	});
+
 	test('a covered second request 409s without touching GitHub', async () => {
 		harness.regenResult = { ok: false, reason: 'off' };
 		await harness.service.create(
@@ -1580,4 +1618,349 @@ describe('lockfile regeneration', () => {
 		},
 		120_000
 	);
+});
+
+/* -------------------------------------------------------------------------- */
+/* Python fixtures                                                            */
+/* -------------------------------------------------------------------------- */
+
+const GHSA_PY = 'GHSA-x84v-xcm2-53pg';
+
+const UV_PYPROJECT = `[project]
+name = "fixture-py"
+version = "0.1.0"
+dependencies = [
+    "requests==2.19.0",
+    "urllib3>=1.20",
+]
+`;
+
+const UV_LOCK_FILE = `version = 1
+
+[[package]]
+name = "fixture-py"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [{ name = "requests" }, { name = "urllib3" }]
+
+[[package]]
+name = "requests"
+version = "2.19.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [{ name = "urllib3" }]
+
+[[package]]
+name = "urllib3"
+version = "1.23"
+source = { registry = "https://pypi.org/simple" }
+`;
+
+const POETRY_PYPROJECT = `[tool.poetry]
+name = "fixture-poetry"
+version = "0.1.0"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+requests = "2.19.0"
+`;
+
+const POETRY_LOCK_FILE = `[[package]]
+name = "requests"
+version = "2.19.0"
+category = "main"
+optional = false
+`;
+
+const REQUIREMENTS_TXT = `# api clients
+requests==2.19.0  # pinned for reproducibility
+`;
+
+const UV_FILES: Record<string, string> = {
+	'pyproject.toml': UV_PYPROJECT,
+	'uv.lock': UV_LOCK_FILE,
+};
+
+const POETRY_FILES: Record<string, string> = {
+	'pyproject.toml': POETRY_PYPROJECT,
+	'poetry.lock': POETRY_LOCK_FILE,
+};
+
+const PIP_FILES: Record<string, string> = {
+	'requirements.txt': REQUIREMENTS_TXT,
+};
+
+/**
+ * Lean python variant of {@link makeHarness}: same GitHub double and regen
+ * stub, but the scan snapshot comes from `parsePypi` and the seeded finding
+ * targets `requests`.
+ */
+async function makePypiHarness(
+	files: Record<string, string>
+): Promise<Harness> {
+	const { db } = createDb(':memory:');
+	runMigrations(db);
+	db.insert(schema.appSettings)
+		.values({ id: 1, createdAt: new Date(), updatedAt: new Date() })
+		.run();
+
+	const github = makeGithub(files);
+	const events: (PrOpenedEvent | PrMergedEvent)[] = [];
+
+	const projects = createProjectsStore(db);
+	const scans = createScansStore(db);
+	const dependencySets = createDependencySetsStore(db);
+	const dependencyStatus = createDependencyStatusStore(db);
+	const findings = createFindingsStore(db);
+	const pullRequests = createPullRequestsStore(db);
+
+	const project = await projects.create({
+		name: 'fixture-py',
+		owner: 'acme',
+		repo: 'fixture-py',
+		branch: 'main',
+	});
+
+	const scan = await scans.begin({
+		projectId: project.id,
+		trigger: 'manual',
+	});
+	const graph = parsePypi(
+		Object.entries(files).map(([path, content]) => ({ path, content }))
+	);
+	const setRow = await dependencySets.create({
+		projectId: project.id,
+		lockHash: 'hash-py-1',
+		manager: graph.manager,
+		graph,
+		firstScanId: scan.id,
+	});
+	await scans.succeed(scan.id, {
+		commitSha: 'base-sha',
+		branch: 'main',
+		dependencySetId: setRow.id,
+		lockHash: 'hash-py-1',
+		depsReused: false,
+		counters: {
+			totalDeps: graph.dependencies.length,
+			directDeps: graph.dependencies.filter((d) => d.isDirect).length,
+			peerDeps: 0,
+			vulnCritical: 0,
+			vulnHigh: 0,
+			vulnModerate: 1,
+			vulnLow: 0,
+			outdatedCount: 1,
+			majorOutdatedCount: 0,
+			newFindings: 1,
+			resolvedFindings: 0,
+		},
+	});
+	await projects.finishScan(project.id, {
+		scanId: scan.id,
+		success: true,
+		lockHash: 'hash-py-1',
+		nextScanAt: new Date(Date.now() + 3_600_000),
+	});
+
+	db.insert(schema.advisories)
+		.values({
+			id: GHSA_PY,
+			summary: 'requests leaks Authorization headers on redirect',
+			severity: 'moderate',
+			url: `https://github.com/advisories/${GHSA_PY}`,
+			updatedAt: new Date(),
+		})
+		.run();
+	await findings.syncForScan(project.id, scan.id, new Date(), [
+		{
+			advisoryId: GHSA_PY,
+			packageName: 'requests',
+			packageVersion: '2.19.0',
+			workspace: '',
+			severity: 'moderate',
+			isDirect: true,
+			depType: 'prod',
+			fixedIn: '2.20.0',
+			fixType: 'minor',
+			fixWithinRange: false,
+		},
+	]);
+
+	await dependencyStatus.replaceForScan(project.id, scan.id, new Date(), [
+		{
+			workspace: '',
+			packageName: 'requests',
+			currentVersion: '2.19.0',
+			declaredRange: '==2.19.0',
+			wantedVersion: '2.19.0',
+			latestVersion: '2.32.3',
+			isDirect: true,
+			depType: 'prod',
+			updateKind: 'minor',
+			deprecatedMessage: null,
+		},
+		{
+			workspace: '',
+			packageName: 'urllib3',
+			currentVersion: '1.23',
+			declaredRange: '>=1.20',
+			wantedVersion: '2.2.2',
+			latestVersion: '2.2.2',
+			isDirect: true,
+			depType: 'prod',
+			updateKind: 'major',
+			deprecatedMessage: null,
+		},
+	]);
+
+	const harness = {
+		db,
+		stores: { projects, pullRequests },
+		github,
+		events,
+		regenResult: { ok: false as boolean, reason: 'stubbed off' },
+		regenCalls: 0,
+		regenInputs: [] as LockfileRegenInput[],
+		projectId: project.id,
+	} as Harness;
+
+	harness.service = createPrService({
+		projects,
+		scans,
+		dependencySets,
+		dependencyStatus,
+		findings,
+		pullRequests,
+		github: {
+			forToken() {
+				const client = createGithubClient({
+					apiUrl: GITHUB_URL,
+					token: 'ghp_test',
+					fetchImpl: github.fetch,
+				});
+				return { client, reader: createRepoReader(client) };
+			},
+			async resolveToken() {
+				return 'ghp_test';
+			},
+		},
+		async dispatchEvent(event) {
+			events.push(event);
+		},
+		config: {
+			enableLockfileRegen: true,
+			appUrl: 'http://localhost:3000',
+		},
+		async regenerate(input) {
+			harness.regenCalls += 1;
+			harness.regenInputs.push(input);
+			return harness.regenResult as
+				| { ok: true; content: string }
+				| { ok: false; reason: string };
+		},
+	});
+
+	return harness;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Python pull requests                                                       */
+/* -------------------------------------------------------------------------- */
+
+describe('pypi pull requests', () => {
+	test('uv plan: pin rewrite + in-range bump classified per PEP 440', async () => {
+		const harness = await makePypiHarness(UV_FILES);
+		const plan = await harness.service.plan(harness.projectId, [
+			{ name: 'requests' },
+			{ name: 'urllib3', toVersion: '2.2.2' },
+		]);
+
+		const requests = plan.items.find(
+			(item) => item.packageName === 'requests'
+		);
+		expect(requests?.status).toBe('changesManifest');
+		expect(requests?.toVersion).toBe('2.20.0');
+		expect(requests?.newRange).toBe('==2.20.0');
+		expect(requests?.manifestPath).toBe('pyproject.toml');
+		expect(requests?.advisories[0]?.advisoryId).toBe(GHSA_PY);
+
+		// `>=1.20` already admits 2.2.2 → only uv.lock moves.
+		const urllib3 = plan.items.find(
+			(item) => item.packageName === 'urllib3'
+		);
+		expect(urllib3?.status).toBe('lockfileOnly');
+
+		expect(plan.branchKind).toBe('security');
+		expect(plan.lockfileRegenPlanned).toBe(true);
+	});
+
+	test('uv create: commits the edited pyproject and the regenerated uv.lock', async () => {
+		const harness = await makePypiHarness(UV_FILES);
+		harness.regenResult = {
+			ok: true,
+			content: 'version = 2 # regenerated',
+		};
+
+		const created = await harness.service.create(
+			harness.projectId,
+			[{ name: 'requests' }, { name: 'urllib3', toVersion: '2.2.2' }],
+			{ kind: 'manual' }
+		);
+
+		expect(created.lockfileUpdated).toBe(true);
+		expect(harness.regenCalls).toBe(1);
+		expect(harness.regenInputs[0]?.manager).toBe('uv');
+		expect(harness.regenInputs[0]?.updateTargets).toEqual(['urllib3']);
+		expect(harness.regenInputs[0]?.lockfile.path).toBe('uv.lock');
+		expect(
+			harness.regenInputs[0]?.manifests.map((file) => file.path)
+		).toEqual(['pyproject.toml']);
+
+		const blobs = harness.github.script.blobs;
+		expect(blobs).toHaveLength(2);
+		expect(blobs[0]).toContain('"requests==2.20.0"');
+		expect(blobs[0]).toContain('"urllib3>=1.20"');
+		expect(blobs[1]).toBe('version = 2 # regenerated');
+
+		const pull = harness.github.script.calls.find(
+			(call) => call.method === 'POST' && call.path.endsWith('/pulls')
+		);
+		expect(String(pull?.body?.body)).toContain('lockfile was regenerated');
+	});
+
+	test('poetry plan: rewrites the range in poetry syntax', async () => {
+		const harness = await makePypiHarness(POETRY_FILES);
+		const plan = await harness.service.plan(harness.projectId, [
+			{ name: 'requests' },
+		]);
+
+		const requests = plan.items.find(
+			(item) => item.packageName === 'requests'
+		);
+		expect(requests?.status).toBe('changesManifest');
+		expect(requests?.newRange).toBe('2.20.0');
+		expect(requests?.manifestPath).toBe('pyproject.toml');
+	});
+
+	test('pip create: edits requirements.txt pins directly, no lockfile talk', async () => {
+		const harness = await makePypiHarness(PIP_FILES);
+
+		const created = await harness.service.create(
+			harness.projectId,
+			[{ name: 'requests' }],
+			{ kind: 'manual' }
+		);
+
+		expect(created.lockfileUpdated).toBe(false);
+		expect(harness.regenCalls).toBe(0);
+
+		const blobs = harness.github.script.blobs;
+		expect(blobs).toHaveLength(1);
+		expect(blobs[0]).toContain('requests==2.20.0');
+		expect(blobs[0]).toContain('# pinned for reproducibility');
+
+		const pull = harness.github.script.calls.find(
+			(call) => call.method === 'POST' && call.path.endsWith('/pulls')
+		);
+		expect(String(pull?.body?.body)).not.toContain('lockfile');
+	});
 });

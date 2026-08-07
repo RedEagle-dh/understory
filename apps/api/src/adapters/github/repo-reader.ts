@@ -25,10 +25,16 @@ const MANIFEST_NAMES = new Set([
 	'bun.lock',
 	'yarn.lock',
 	'pnpm-lock.yaml',
+	'pyproject.toml',
+	'uv.lock',
+	'poetry.lock',
+	'requirements.txt',
 ]);
 
 const EXCLUDED_PATH_SEGMENTS = [
 	'node_modules/',
+	'.venv/',
+	'site-packages/',
 	'/fixtures/',
 	'/__tests__/',
 	'/__fixtures__/',

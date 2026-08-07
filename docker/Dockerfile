@@ -30,6 +30,11 @@ RUN apt-get update \
 	&& apt-get install -y --no-install-recommends nodejs npm ca-certificates \
 	&& rm -rf /var/lib/apt/lists/*
 
+# uv regenerates uv.lock for Python auto-PRs — a single static binary.
+# poetry is NOT bundled (it drags in a Python toolchain); poetry projects get
+# manifest-only PRs with a "run `poetry lock`" note unless the operator adds it.
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
 # The whole installed tree, not just the root node_modules: bun's isolated
 # layout gives every workspace package its own node_modules of symlinks.
 COPY --from=api-deps /app ./

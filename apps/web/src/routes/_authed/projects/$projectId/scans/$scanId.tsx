@@ -49,6 +49,24 @@ function ScanDetail() {
               repo={projectQuery.data?.repo}
             />
 
+            {scan.warnings.length > 0 && (
+              <Alert>
+                <AlertTriangle />
+                <AlertTitle>
+                  {scan.warnings.length === 1
+                    ? "The scan completed with a warning"
+                    : `The scan completed with ${scan.warnings.length} warnings`}
+                </AlertTitle>
+                <AlertDescription>
+                  <ul className="mt-1 list-disc space-y-1 pl-4 text-xs">
+                    {scan.warnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {scan.status === "failed" && (
               <Alert variant="destructive">
                 <AlertTriangle />

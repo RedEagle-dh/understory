@@ -20,11 +20,24 @@ import { DependencyDetailSheet } from "@/features/dependencies/components/depend
 import { useCreatePrFlow } from "@/features/pull-requests/create-pr-context"
 import { useTableSearchParams } from "@/hooks/use-table-search-params"
 
+/**
+ * `type` and `direct` have DEFAULTS (direct prod+dev deps), so "absent" and
+ * "explicitly cleared" must be distinguishable: an absent param applies the
+ * default, `type: []` / `direct: false` mean "show everything".
+ */
+const DEFAULT_TYPES = ["prod", "dev"] as const
+
 const searchSchema = z.object({
   q: z.string().optional(),
-  type: z.enum(["prod", "dev", "peer", "optional", "peer_optional"]).optional(),
+  type: z
+    .array(z.enum(["prod", "dev", "peer", "optional", "peer_optional"]))
+    .optional()
+    .catch(undefined),
   direct: z.boolean().optional(),
-  updateKind: z.enum(["none", "patch", "minor", "major"]).optional(),
+  updateKind: z
+    .array(z.enum(["none", "patch", "minor", "major"]))
+    .optional()
+    .catch(undefined),
   hasVuln: z.boolean().optional(),
   sort: z.enum(["name", "severity", "updateKind"]).optional(),
   page: z.number().int().min(1).catch(1).default(1),
@@ -78,11 +91,16 @@ function ProjectDependencies() {
     setPageSize,
   } = useTableSearchParams({ search, navigate })
 
+  // Defaults: the everyday view is the DIRECT prod+dev dependencies. An
+  // explicit `type: []` / `direct: false` in the URL means "show everything".
+  const typeFilter = search.type ?? [...DEFAULT_TYPES]
+  const directOnly = search.direct ?? true
+
   const query = useQuery(
     dependenciesQueryOptions(projectId, {
       q: search.q,
-      depType: search.type,
-      direct: search.direct,
+      depType: typeFilter,
+      direct: directOnly ? true : undefined,
       updateKind: search.updateKind,
       hasVuln: search.hasVuln,
       sort: search.sort,
@@ -91,11 +109,16 @@ function ProjectDependencies() {
     })
   )
 
+  // "Active" = deviating from the default view, so the empty-project state
+  // still reads "no data yet" rather than "no match" on a fresh project.
+  const typeIsDefault =
+    typeFilter.length === DEFAULT_TYPES.length &&
+    DEFAULT_TYPES.every((value) => typeFilter.includes(value))
   const hasActiveFilters =
     (search.q ?? "") !== "" ||
-    search.type !== undefined ||
-    search.updateKind !== undefined ||
-    search.direct !== undefined ||
+    !typeIsDefault ||
+    (search.updateKind !== undefined && search.updateKind.length > 0) ||
+    directOnly !== true ||
     search.hasVuln !== undefined
 
   const resetFilters = () =>
@@ -136,10 +159,19 @@ function ProjectDependencies() {
             <div className="flex flex-col gap-3">
               <DependenciesToolbar
                 q={search.q ?? ""}
-                depType={search.type}
-                updateKind={search.updateKind}
-                direct={search.direct}
+                depType={typeFilter}
+                updateKind={search.updateKind ?? []}
+                direct={directOnly}
                 hasVuln={search.hasVuln}
+                activeFilterCount={
+                  [
+                    (search.q ?? "") !== "",
+                    !typeIsDefault,
+                    (search.updateKind?.length ?? 0) > 0,
+                    directOnly !== true,
+                    search.hasVuln === true,
+                  ].filter(Boolean).length
+                }
                 onChange={updateSearch}
                 onReset={resetFilters}
               />

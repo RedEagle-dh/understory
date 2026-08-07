@@ -8,9 +8,11 @@ export type UpdateKind = "none" | "patch" | "minor" | "major"
 
 export interface DependenciesParams {
   q?: string
-  depType?: DepType
+  /** Several types combine as OR; empty/undefined = all types. */
+  depType?: DepType[]
   direct?: boolean
-  updateKind?: UpdateKind
+  /** Several kinds combine as OR; empty/undefined = all kinds. */
+  updateKind?: UpdateKind[]
   hasVuln?: boolean
   sort?: "name" | "severity" | "updateKind"
   page: number
@@ -26,9 +28,20 @@ export function dependenciesQueryOptions(
     queryKey: [...qk.dependencies(projectId), params] as const,
     queryFn: async () =>
       unwrap(
-        await api.api
-          .projects({ projectId })
-          .dependencies.get({ query: params })
+        await api.api.projects({ projectId }).dependencies.get({
+          query: {
+            ...params,
+            // The API takes multi-value filters as comma-separated lists.
+            depType:
+              params.depType === undefined || params.depType.length === 0
+                ? undefined
+                : params.depType.join(","),
+            updateKind:
+              params.updateKind === undefined || params.updateKind.length === 0
+                ? undefined
+                : params.updateKind.join(","),
+          },
+        })
       ),
     placeholderData: keepPreviousData,
   })

@@ -116,6 +116,7 @@ export function parseLockfile(files: readonly FileEntry[]): DependencyGraph {
 	}
 
 	return {
+		ecosystem: 'npm',
 		manager,
 		workspaces: [...workspaceSet].sort(),
 		dependencies: dedupeDependencies(dependencies),

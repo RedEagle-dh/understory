@@ -138,6 +138,7 @@ describe('npm bulk normalization', () => {
 		const command = advisories.find((a) => a.sourceId === '1673');
 		expect(command?.ranges).toEqual([
 			{
+				ecosystem: 'npm',
 				packageName: 'lodash',
 				vulnerableRange: '<4.17.21',
 				firstPatched: '4.17.21',
@@ -169,6 +170,7 @@ describe('OSV normalization', () => {
 		expect(advisory.aliases).toEqual(['CVE-2021-23337']);
 		expect(advisory.ranges).toEqual([
 			{
+				ecosystem: 'npm',
 				packageName: 'lodash',
 				vulnerableRange: '<4.17.21',
 				firstPatched: '4.17.21',
@@ -263,6 +265,101 @@ describe('OSV normalization', () => {
 		expect(advisory.id).toBe('OSV-1');
 		expect(advisory.url).toBe('https://osv.dev/vulnerability/OSV-1');
 	});
+
+	test('keeps affected entries matching the requested ecosystem', () => {
+		const advisory = normalizeOsvVuln(
+			{
+				id: 'OSV-2',
+				affected: [
+					{
+						package: { name: 'Django', ecosystem: 'PyPI' },
+						ranges: [
+							{
+								type: 'ECOSYSTEM',
+								events: [
+									{ introduced: '0' },
+									{ fixed: '4.2.1' },
+								],
+							},
+						],
+					},
+					{
+						package: { name: 'lodash', ecosystem: 'npm' },
+						ranges: [
+							{ type: 'SEMVER', events: [{ introduced: '0' }] },
+						],
+					},
+				],
+			},
+			{ ecosystem: 'pypi' }
+		);
+		expect(advisory.ranges).toEqual([
+			{
+				ecosystem: 'pypi',
+				packageName: 'django',
+				vulnerableRange: '<4.2.1',
+				firstPatched: '4.2.1',
+			},
+		]);
+	});
+
+	test('pypi renders comma-joined specifiers, one row per interval', () => {
+		const advisory = normalizeOsvVuln(
+			{
+				id: 'OSV-3',
+				affected: [
+					{
+						package: { name: 'pillow', ecosystem: 'PyPI' },
+						ranges: [
+							{
+								type: 'ECOSYSTEM',
+								events: [
+									{ introduced: '2.0' },
+									{ fixed: '9.0.1' },
+									{ introduced: '10.0' },
+									{ fixed: '10.0.1' },
+								],
+							},
+						],
+					},
+				],
+			},
+			{ ecosystem: 'pypi' }
+		);
+		expect(advisory.ranges).toEqual([
+			{
+				ecosystem: 'pypi',
+				packageName: 'pillow',
+				vulnerableRange: '>=2.0,<9.0.1',
+				firstPatched: '9.0.1',
+			},
+			{
+				ecosystem: 'pypi',
+				packageName: 'pillow',
+				vulnerableRange: '>=10.0,<10.0.1',
+				firstPatched: '9.0.1',
+			},
+		]);
+	});
+
+	test('pypi exact version lists render as == pins', () => {
+		const advisory = normalizeOsvVuln(
+			{
+				id: 'OSV-4',
+				affected: [
+					{
+						package: { name: 'requests', ecosystem: 'PyPI' },
+						versions: ['2.3.0', '2.4.0'],
+					},
+				],
+			},
+			{ ecosystem: 'pypi' }
+		);
+		expect(advisory.ranges.map((range) => range.vulnerableRange)).toEqual([
+			'==2.3.0',
+			'==2.4.0',
+		]);
+	});
 });
 
 /* -------------------------------------------------------------------------- */
@@ -272,8 +369,8 @@ describe('mergeAdvisories', () => {
 		...normalizeNpmBulkResponse(NPM_LODASH),
 		...normalizeNpmBulkResponse(NPM_MINIMIST),
 	];
-	const osv = [OSV_LODASH_CMD, OSV_LODASH_PROTO, OSV_MINIMIST].map(
-		normalizeOsvVuln
+	const osv = [OSV_LODASH_CMD, OSV_LODASH_PROTO, OSV_MINIMIST].map((vuln) =>
+		normalizeOsvVuln(vuln)
 	);
 	const merged = mergeAdvisories([npm, osv]);
 
@@ -345,7 +442,13 @@ describe('mergeAdvisories', () => {
 					summary: 'npm text',
 					severity: 'low',
 					cweIds: [],
-					ranges: [{ packageName: 'x', vulnerableRange: '<1.0.0' }],
+					ranges: [
+						{
+							ecosystem: 'npm' as const,
+							packageName: 'x',
+							vulnerableRange: '<1.0.0',
+						},
+					],
 					raw: null,
 				},
 			],
@@ -358,7 +461,13 @@ describe('mergeAdvisories', () => {
 					summary: 'osv text',
 					severity: 'critical',
 					cweIds: ['CWE-79'],
-					ranges: [{ packageName: 'x', vulnerableRange: '<1.0.0' }],
+					ranges: [
+						{
+							ecosystem: 'npm' as const,
+							packageName: 'x',
+							vulnerableRange: '<1.0.0',
+						},
+					],
 					raw: null,
 				},
 			],

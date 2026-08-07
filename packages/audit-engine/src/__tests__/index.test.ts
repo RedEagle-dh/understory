@@ -69,6 +69,33 @@ const PUBLIC_API = [
 	'computeFix',
 	'checkPeers',
 	'planBump',
+	// ecosystem port
+	'semverVersioning',
+	'npmEcosystem',
+	'pypiEcosystem',
+	'ECOSYSTEMS',
+	'ecosystemFor',
+	'detectEcosystems',
+	// pypi versioning + registry
+	'pep440Versioning',
+	'normalizePypiName',
+	'createPypiClient',
+	'DEFAULT_PYPI_URL',
+	// pypi parsers
+	'parsePypi',
+	'parsePep508',
+	'parsePyproject',
+	'translatePoetryRange',
+	'declaredByName',
+	'parseUvLock',
+	'parsePoetryLock',
+	'parseRequirementsTxt',
+	'detectPypiManager',
+	'isPypiPresent',
+	'findPypiFile',
+	// osv ecosystem rendering
+	'OSV_ECOSYSTEM_NAMES',
+	'osvRangeToIntervals',
 ] as const;
 
 describe('public API surface', () => {

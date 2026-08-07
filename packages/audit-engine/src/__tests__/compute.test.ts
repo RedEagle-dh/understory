@@ -292,6 +292,7 @@ function dependency(
 
 function graphOf(dependencies: ParsedDependency[]): DependencyGraph {
 	return {
+		ecosystem: 'npm',
 		manager: 'npm',
 		workspaces: ['', 'apps/web'],
 		dependencies,

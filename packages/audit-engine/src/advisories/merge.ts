@@ -134,10 +134,11 @@ export function mergeAdvisories(
 			for (const cwe of advisory.cweIds) cweIds.add(cwe);
 
 			for (const range of advisory.ranges) {
-				const key = `${range.packageName} ${range.vulnerableRange}`;
+				const key = `${range.ecosystem} ${range.packageName} ${range.vulnerableRange}`;
 				if (rangeKeys.has(key)) {
 					const existing = ranges.find(
 						(candidate) =>
+							candidate.ecosystem === range.ecosystem &&
 							candidate.packageName === range.packageName &&
 							candidate.vulnerableRange === range.vulnerableRange
 					);

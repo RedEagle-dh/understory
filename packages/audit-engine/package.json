@@ -17,9 +17,11 @@
     "lint": "biome lint src"
   },
   "dependencies": {
+    "@renovatebot/pep440": "^5.0.0",
     "jsonc-parser": "catalog:",
     "picomatch": "catalog:",
-    "semver": "catalog:"
+    "semver": "catalog:",
+    "smol-toml": "^1.7.1"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

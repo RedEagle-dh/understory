@@ -1,5 +1,5 @@
-import { isSemverRange, satisfiesRange } from './ranges';
 import type { DependencyGraph, PeerIssue } from './types';
+import { semverVersioning, type Versioning } from './versioning';
 
 export interface CheckPeersOptions {
 	/**
@@ -9,6 +9,8 @@ export interface CheckPeersOptions {
 	 * reported, with `optional: true`.
 	 */
 	includeMissingOptional?: boolean;
+	/** Ecosystem version semantics. Defaults to npm/semver. */
+	versioning?: Versioning;
 }
 
 /**
@@ -23,6 +25,7 @@ export function checkPeers(
 	options: CheckPeersOptions = {}
 ): PeerIssue[] {
 	const { includeMissingOptional = false } = options;
+	const versioning = options.versioning ?? semverVersioning;
 
 	// workspace → name → versions present in that workspace.
 	const index = new Map<string, Map<string, string[]>>();
@@ -83,10 +86,10 @@ export function checkPeers(
 			}
 
 			// Non-semver peer ranges (`workspace:*`, git urls, …) cannot be checked.
-			if (!isSemverRange(requirement.range)) continue;
+			if (!versioning.isValidRange(requirement.range)) continue;
 
 			const satisfied = resolved.some((version) =>
-				satisfiesRange(version, requirement.range)
+				versioning.satisfies(version, requirement.range)
 			);
 			if (satisfied) continue;
 

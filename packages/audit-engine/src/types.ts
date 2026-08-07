@@ -21,11 +21,29 @@ export interface FileEntry {
 /* Dependency graph                                                           */
 /* -------------------------------------------------------------------------- */
 
-export type PackageManager = 'npm' | 'bun' | 'yarn' | 'pnpm';
+/**
+ * A package registry universe. Every dependency graph, advisory range, and
+ * registry lookup is scoped to exactly one ecosystem; package names are only
+ * meaningful within theirs.
+ */
+export type Ecosystem = 'npm' | 'pypi';
+
+export type PackageManager =
+	| 'npm'
+	| 'bun'
+	| 'yarn'
+	| 'pnpm'
+	| 'uv'
+	| 'poetry'
+	| 'pip';
 
 export type DepType = 'prod' | 'dev' | 'peer' | 'optional' | 'peer_optional';
 
-/** How a declared range should be interpreted. */
+/**
+ * How a declared range should be interpreted. `semver` means "evaluable in
+ * the ecosystem's native range syntax" — a PEP 440 specifier set for pypi —
+ * and is the only kind (besides `wildcard`) fed into outdated/fix math.
+ */
 export type RangeKind =
 	| 'semver'
 	| 'tag'
@@ -66,6 +84,7 @@ export interface ParsedDependency {
 }
 
 export interface DependencyGraph {
+	ecosystem: Ecosystem;
 	manager: PackageManager;
 	/** Workspace paths, including `''` for the repo root. */
 	workspaces: string[];
@@ -124,8 +143,13 @@ export type Severity = 'low' | 'moderate' | 'high' | 'critical';
 export type AdvisorySource = 'npm' | 'osv';
 
 export interface AdvisoryRange {
+	ecosystem: Ecosystem;
 	packageName: string;
-	/** A semver range string, e.g. `>=4.0.0 <4.17.21`. */
+	/**
+	 * The vulnerable range in the ecosystem's own syntax: a semver range
+	 * (`>=4.0.0 <4.17.21`) for npm, a PEP 440 specifier set (`>=4.0,<4.17.21`)
+	 * for pypi. Evaluate with the matching {@link Versioning}.
+	 */
 	vulnerableRange: string;
 	firstPatched?: string;
 }

@@ -107,6 +107,7 @@ export function normalizeNpmAdvisory(
 		url: entry.url,
 		ranges: [
 			{
+				ecosystem: 'npm',
 				packageName,
 				vulnerableRange,
 				firstPatched: inferFirstPatched(vulnerableRange),

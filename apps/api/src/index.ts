@@ -40,10 +40,30 @@ function isObservabilityInstance(
 const observability = manifest.telemetry?.find(isObservabilityInstance);
 
 /**
+ * Hands the request to better-auth with the socket's client IP stamped into
+ * `x-client-ip` (always overwritten, so it is not spoofable from outside).
+ * better-auth reads it via `advanced.ipAddress.ipAddressHeaders` — without a
+ * resolvable IP its rate limiter degrades to one shared per-path bucket.
+ */
+function handleAuth({
+	request,
+	server,
+}: {
+	request: Request;
+	server: { requestIP(request: Request): { address: string } | null } | null;
+}): Promise<Response> {
+	const ip = server?.requestIP(request)?.address;
+	if (ip === undefined) return auth.handler(request);
+	const headers = new Headers(request.headers);
+	headers.set('x-client-ip', ip);
+	return auth.handler(new Request(request, { headers }));
+}
+
+/**
  * Transport-only entrypoint. Everything declarative is injected through the
  * generated manifest via a single `.use(createApp(...))`. The raw /health
  * route exists for pre-boot container probes; better-auth is mounted here in
- * the auth phase (`.all('/api/auth/*', ...)`); `/metrics` is transport-level
+ * the auth phase (`/api/auth/*`); `/metrics` is transport-level
  * (not a declarative route) because it serves Prometheus's own text format,
  * not JSON, and its auth (an optional bearer token, independent of user
  * sessions) doesn't fit the app's route policy model.
@@ -58,7 +78,11 @@ const app = new Elysia()
 			allowedHeaders: ['Content-Type', 'Authorization'],
 		})
 	)
-	.all('/api/auth/*', ({ request }) => auth.handler(request))
+	// Method-specific mounts, NOT `.all`: Bun's router prefers a
+	// method-specific route over a method-wildcard one, so `.all` here would
+	// lose every GET (get-session included) to static-web's `.get('/*')`.
+	.get('/api/auth/*', handleAuth)
+	.post('/api/auth/*', handleAuth)
 	.get('/metrics', async ({ request, set }) => {
 		if (!env.METRICS_ENABLED) {
 			set.status = 404;

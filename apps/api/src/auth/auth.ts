@@ -31,6 +31,13 @@ export const auth = betterAuth({
 			sameSite: 'lax',
 			secure: env.APP_URL.startsWith('https'),
 		},
+		ipAddress: {
+			// x-client-ip is stamped from the socket address by the transport
+			// mount (apps/api/src/index.ts) and cannot be spoofed from outside.
+			ipAddressHeaders: env.TRUST_PROXY
+				? ['x-forwarded-for', 'x-client-ip']
+				: ['x-client-ip'],
+		},
 	},
 	trustedOrigins: env.TRUSTED_ORIGINS,
 	rateLimit: { enabled: true, window: 60, max: 20 },

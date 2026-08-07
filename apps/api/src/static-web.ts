@@ -21,7 +21,12 @@ export function staticWeb(distDir: string) {
 
 	return app.get('/*', ({ path, set }) => {
 		const safePath = normalize(path).replace(/^(\.\.[/\\])+/, '');
-		if (safePath.startsWith('/api')) return;
+		if (safePath.startsWith('/api')) {
+			// Unmatched API path — a bare `return` would send an empty 200,
+			// and index.html would be nonsense for an API client.
+			set.status = 404;
+			return { error: 'not found' };
+		}
 		const file = Bun.file(join(distDir, safePath));
 		set.headers['x-content-type-options'] = 'nosniff';
 		if (safePath !== '/' && existsSync(join(distDir, safePath))) {

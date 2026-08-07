@@ -53,6 +53,11 @@ export const env = {
 		.map((origin) => origin.trim())
 		.filter((origin) => origin.length > 0),
 	LOG_LEVEL: process.env.LOG_LEVEL ?? 'info',
+	/** Baked into the image from the release tag; 'dev' (non-semver) disables update checks. */
+	APP_VERSION: process.env.APP_VERSION ?? 'dev',
+	UPDATE_CHECK: process.env.UPDATE_CHECK !== 'false',
+	/** GitHub repo whose releases are the update feed. */
+	UPDATE_CHECK_REPO: process.env.UPDATE_CHECK_REPO ?? 'RedEagle-dh/understory',
 	METRICS_ENABLED: process.env.METRICS_ENABLED === 'true',
 	METRICS_TOKEN: process.env.METRICS_TOKEN,
 	/** Static SPA directory served for non-/api paths in production ('' disables). */

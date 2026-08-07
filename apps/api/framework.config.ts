@@ -34,6 +34,7 @@ export default defineConfig({
 			package: './src/modules/dashboard',
 			export: 'dashboardModule',
 		},
+		system: { package: './src/modules/system', export: 'systemModule' },
 		jobs: { package: './src/modules/jobs', export: 'jobsModule' },
 	},
 	telemetry: {

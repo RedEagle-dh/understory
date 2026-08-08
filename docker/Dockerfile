@@ -30,6 +30,14 @@ RUN apt-get update \
 	&& apt-get install -y --no-install-recommends nodejs npm ca-certificates \
 	&& rm -rf /var/lib/apt/lists/*
 
+# pnpm regenerates pnpm-lock.yaml (`pnpm install --lockfile-only`). It is a
+# plain JS package, so it costs a few MB rather than a second toolchain.
+# yarn is NOT bundled: yarn 1 has no lockfile-only mode at all, and berry is
+# resolved per-repository through corepack — yarn projects get manifest-only
+# PRs with a "run `yarn install`" note.
+RUN npm install -g --no-fund --no-audit pnpm@10.20.0 \
+	&& npm cache clean --force
+
 # uv regenerates uv.lock for Python auto-PRs — a single static binary.
 # poetry is NOT bundled (it drags in a Python toolchain); poetry projects get
 # manifest-only PRs with a "run `poetry lock`" note unless the operator adds it.

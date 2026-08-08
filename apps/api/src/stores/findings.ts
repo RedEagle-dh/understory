@@ -1,6 +1,6 @@
 import type { DepType, FixType, Severity } from '@workspace/audit-engine';
 import { type Db, id, schema } from '@workspace/db';
-import { and, eq, inArray, like, ne, or, type SQL, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, like, ne, or, type SQL, sql } from 'drizzle-orm';
 
 export type FindingRow = typeof schema.findings.$inferSelect;
 export type FindingState = FindingRow['state'];
@@ -35,6 +35,32 @@ export interface FindingWithAdvisory {
 	advisorySummary: string;
 	advisoryUrl: string | null;
 	advisoryCvssScore: number | null;
+}
+
+/** Cross-project triage row: the finding, who it belongs to, and how urgent it is. */
+export interface GlobalFindingRow extends FindingWithAdvisory {
+	projectName: string;
+	owner: string;
+	repo: string;
+	epssScore: number | null;
+	epssPercentile: number | null;
+	kevAddedAt: Date | null;
+	kevKnownRansomware: boolean | null;
+}
+
+export interface GlobalFindingFilters {
+	severity?: readonly Severity[];
+	state?: readonly FindingState[];
+	isDirect?: boolean;
+	hasFix?: boolean;
+	/** Restrict to one project; omit for the whole fleet. */
+	projectId?: string;
+	/** Only findings CISA lists as exploited in the wild. */
+	kevOnly?: boolean;
+	q?: string;
+	sort?: 'risk' | 'severity' | 'firstSeen';
+	page: number;
+	pageSize: number;
 }
 
 export interface SeverityCountsResult {
@@ -527,6 +553,159 @@ export function createFindingsStore(db: Db) {
 				count += rows.length;
 			}
 			return count;
+		},
+
+		/**
+		 * The global inbox: open findings across every project, newest and
+		 * most urgent first.
+		 *
+		 * `risk` ordering is deliberately not severity: CISA's KEV catalogue
+		 * lists vulnerabilities *observed* being exploited, and an EPSS score
+		 * estimates the probability of exploitation in the next 30 days. A
+		 * moderate that attackers are actively using outranks a critical that
+		 * nobody has ever weaponised, so both signals sort ahead of the CVSS
+		 * label. Advisories with no score sort last rather than as zero — "not
+		 * scored" is not "safe".
+		 */
+		async listGlobal(
+			filters: GlobalFindingFilters
+		): Promise<{ items: GlobalFindingRow[]; total: number }> {
+			const clauses: (SQL | undefined)[] = [];
+			if (filters.projectId !== undefined) {
+				clauses.push(eq(schema.findings.projectId, filters.projectId));
+			}
+			clauses.push(
+				inArray(schema.findings.state, [
+					...(filters.state === undefined || filters.state.length === 0
+						? (['open'] as const)
+						: filters.state),
+				])
+			);
+			if (filters.severity !== undefined && filters.severity.length > 0) {
+				clauses.push(
+					inArray(schema.findings.severity, [...filters.severity])
+				);
+			}
+			if (filters.isDirect !== undefined) {
+				clauses.push(eq(schema.findings.isDirect, filters.isDirect));
+			}
+			if (filters.hasFix === true) {
+				clauses.push(sql`${schema.findings.fixedIn} is not null`);
+			} else if (filters.hasFix === false) {
+				clauses.push(sql`${schema.findings.fixedIn} is null`);
+			}
+			if (filters.kevOnly === true) {
+				clauses.push(sql`${schema.advisories.kevAddedAt} is not null`);
+			}
+			if (filters.q !== undefined && filters.q !== '') {
+				const pattern = `%${escapeLike(filters.q)}%`;
+				clauses.push(
+					or(
+						like(schema.findings.packageName, pattern),
+						like(schema.findings.advisoryId, pattern),
+						like(schema.projects.name, pattern)
+					)
+				);
+			}
+			const where = and(...clauses);
+
+			const severityRank = sql`case ${schema.findings.severity} when 'critical' then 0 when 'high' then 1 when 'moderate' then 2 else 3 end`;
+			const order =
+				filters.sort === 'firstSeen'
+					? [desc(schema.findings.firstSeenAt)]
+					: filters.sort === 'severity'
+						? [severityRank, desc(schema.findings.firstSeenAt)]
+						: [
+								sql`case when ${schema.advisories.kevAddedAt} is not null then 0 else 1 end`,
+								sql`${schema.advisories.epssScore} is null`,
+								desc(schema.advisories.epssScore),
+								severityRank,
+							];
+
+			const base = () =>
+				db
+					.select({
+						finding: schema.findings,
+						advisorySummary: schema.advisories.summary,
+						advisoryUrl: schema.advisories.url,
+						advisoryCvssScore: schema.advisories.cvssScore,
+						epssScore: schema.advisories.epssScore,
+						epssPercentile: schema.advisories.epssPercentile,
+						kevAddedAt: schema.advisories.kevAddedAt,
+						kevKnownRansomware: schema.advisories.kevKnownRansomware,
+						projectName: schema.projects.name,
+						owner: schema.projects.owner,
+						repo: schema.projects.repo,
+					})
+					.from(schema.findings)
+					.innerJoin(
+						schema.advisories,
+						eq(schema.advisories.id, schema.findings.advisoryId)
+					)
+					.innerJoin(
+						schema.projects,
+						eq(schema.projects.id, schema.findings.projectId)
+					)
+					.where(where);
+
+			const [items, [total]] = await Promise.all([
+				base()
+					.orderBy(...order)
+					.limit(filters.pageSize)
+					.offset((filters.page - 1) * filters.pageSize),
+				db
+					.select({ count: sql<number>`count(*)` })
+					.from(schema.findings)
+					.innerJoin(
+						schema.advisories,
+						eq(schema.advisories.id, schema.findings.advisoryId)
+					)
+					.innerJoin(
+						schema.projects,
+						eq(schema.projects.id, schema.findings.projectId)
+					)
+					.where(where),
+			]);
+
+			return { items, total: total?.count ?? 0 };
+		},
+
+		/** Fleet-wide open counts by severity, plus the exploited-in-the-wild tally. */
+		async globalOpenCounts(): Promise<
+			SeverityCountsResult & { kev: number; projects: number }
+		> {
+			const [bySeverity, [extras]] = await Promise.all([
+				db
+					.select({
+						severity: schema.findings.severity,
+						count: sql<number>`count(*)`,
+					})
+					.from(schema.findings)
+					.where(eq(schema.findings.state, 'open'))
+					.groupBy(schema.findings.severity),
+				db
+					.select({
+						kev: sql<number>`sum(case when ${schema.advisories.kevAddedAt} is not null then 1 else 0 end)`,
+						projects: sql<number>`count(distinct ${schema.findings.projectId})`,
+					})
+					.from(schema.findings)
+					.innerJoin(
+						schema.advisories,
+						eq(schema.advisories.id, schema.findings.advisoryId)
+					)
+					.where(eq(schema.findings.state, 'open')),
+			]);
+
+			const counts = {
+				critical: 0,
+				high: 0,
+				moderate: 0,
+				low: 0,
+				kev: extras?.kev ?? 0,
+				projects: extras?.projects ?? 0,
+			};
+			for (const row of bySeverity) counts[row.severity] = row.count;
+			return counts;
 		},
 
 		async listForPackage(

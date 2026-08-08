@@ -11,6 +11,8 @@ import { Severity } from './common';
 export const NotificationChannelType = t.Union([
 	t.Literal('email_resend'),
 	t.Literal('discord_webhook'),
+	t.Literal('slack_webhook'),
+	t.Literal('webhook'),
 ]);
 
 export const EventType = t.Union([

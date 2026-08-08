@@ -45,7 +45,11 @@ export type DeliveryResult =
 			retryAfterMs?: number;
 	  };
 
-export type NotificationProviderType = 'email_resend' | 'discord_webhook';
+export type NotificationProviderType =
+	| 'email_resend'
+	| 'discord_webhook'
+	| 'slack_webhook'
+	| 'webhook';
 
 export interface NotificationProviderPort<Config = unknown> {
 	readonly type: NotificationProviderType;

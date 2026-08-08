@@ -885,13 +885,28 @@ export function createScanService(deps: ScanServiceDeps) {
 		if (!project.autoPrEnabled) return;
 		const minSeverity = SEVERITY_RANK[project.autoPrMinSeverity];
 		const maxBump = BUMP_RANK[project.autoPrMaxBump];
+
+		/**
+		 * Confirmed in-the-wild exploitation can outrank the severity label:
+		 * CVSS is assigned once, before anyone was being attacked, while a KEV
+		 * listing is a report that they now are. `autoPrMaxBump` still applies,
+		 * so this never ships a surprise major.
+		 */
+		const kevIds =
+			project.autoPrKevOverride && diff.newFindings.length > 0
+				? await deps.advisories.kevListedIds(
+						diff.newFindings.map((finding) => finding.advisoryId)
+					)
+				: new Set<string>();
+
 		const selections: AutoPrSelection[] = diff.newFindings
 			.filter(
 				(finding) =>
 					finding.fixedIn !== null &&
 					finding.fixType !== null &&
 					finding.fixType !== 'none' &&
-					SEVERITY_RANK[finding.severity] >= minSeverity &&
+					(SEVERITY_RANK[finding.severity] >= minSeverity ||
+						kevIds.has(finding.advisoryId)) &&
 					BUMP_RANK[finding.fixType] <= maxBump
 			)
 			.map((finding) => ({

@@ -25,6 +25,9 @@ const MANIFEST_NAMES = new Set([
 	'bun.lock',
 	'yarn.lock',
 	'pnpm-lock.yaml',
+	// Not a manifest, but pnpm keeps its workspace globs and `catalog:` tables
+	// here instead of in package.json.
+	'pnpm-workspace.yaml',
 	'pyproject.toml',
 	'uv.lock',
 	'poetry.lock',
@@ -118,6 +121,9 @@ export function createRepoReader(client: GithubClient) {
 				'package.json',
 				'package-lock.json',
 				'bun.lock',
+				'pnpm-lock.yaml',
+				'pnpm-workspace.yaml',
+				'yarn.lock',
 			];
 		} else {
 			paths = tree.body.tree

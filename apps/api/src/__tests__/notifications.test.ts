@@ -112,6 +112,8 @@ function makeHarness() {
 		providers: {
 			discord_webhook: provider,
 			email_resend: provider,
+			slack_webhook: provider,
+			webhook: provider,
 		} as Record<NotificationProviderType, NotificationProviderPort>,
 		now: () => now,
 	});

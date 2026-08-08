@@ -21,6 +21,10 @@ export default defineConfig({
 			package: './src/modules/vulnerabilities',
 			export: 'vulnerabilitiesModule',
 		},
+		packages: {
+			package: './src/modules/packages',
+			export: 'packagesModule',
+		},
 		pullRequests: {
 			package: './src/modules/pull-requests',
 			export: 'pullRequestsModule',

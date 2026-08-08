@@ -2,6 +2,8 @@ import { Value } from '@sinclair/typebox/value';
 import { InvalidInputError } from '../../errors';
 import { discordWebhookProvider } from './discord-webhook';
 import { emailResendProvider } from './email-resend';
+import { slackWebhookProvider } from './slack-webhook';
+import { webhookProvider } from './webhook';
 import type {
 	NotificationProviderPort,
 	NotificationProviderType,
@@ -18,6 +20,8 @@ export const providers: Record<
 > = {
 	email_resend: emailResendProvider as NotificationProviderPort,
 	discord_webhook: discordWebhookProvider as NotificationProviderPort,
+	slack_webhook: slackWebhookProvider as NotificationProviderPort,
+	webhook: webhookProvider as NotificationProviderPort,
 };
 
 export function providerFor(

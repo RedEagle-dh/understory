@@ -23,6 +23,7 @@ export const ProjectView = t.Object({
 		t.Literal('minor'),
 		t.Literal('major'),
 	]),
+	autoPrKevOverride: t.Boolean(),
 	autoBumpEnabled: t.Boolean(),
 	autoBumpMaxKind: t.Union([
 		t.Literal('patch'),

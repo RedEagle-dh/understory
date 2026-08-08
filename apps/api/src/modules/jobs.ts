@@ -85,6 +85,25 @@ export function jobsModule() {
 				},
 			});
 
+			/**
+			 * Runs after `advisory.refresh` (03:17) so newly-merged advisories
+			 * get scored in the same night rather than waiting a full day.
+			 * EPSS is recomputed daily; KEV changes a few times a week.
+			 */
+			const threatIntel = job({
+				id: 'threat.intel',
+				schedule: { cron: '48 3 * * *' },
+				timeoutMs: 20 * 60_000,
+				handler: async (ctx) => {
+					const result = await env.threatIntelService.refresh(
+						new Date()
+					);
+					if (result.examined > 0) {
+						ctx.log.info('threat intel tick', { ...result });
+					}
+				},
+			});
+
 			const updateCheck = job({
 				id: 'update.check',
 				schedule: { cron: '23 */12 * * *' },
@@ -117,6 +136,7 @@ export function jobsModule() {
 					notificationsRetry,
 					notificationsDigest,
 					advisoryRefresh,
+					threatIntel,
 					updateCheck,
 					retentionPrune,
 				] as const,

@@ -26,6 +26,8 @@ import type { ChannelListItem, ChannelType } from "../api"
 import { useCreateChannel, useUpdateChannel } from "../api"
 import { DiscordChannelForm } from "./discord-channel-form"
 import { ResendChannelForm } from "./resend-channel-form"
+import { SlackChannelForm } from "./slack-channel-form"
+import { WebhookChannelForm } from "./webhook-channel-form"
 
 interface AddChannelDialogProps {
   open: boolean
@@ -37,6 +39,28 @@ interface AddChannelDialogProps {
 const TYPE_LABELS: Record<ChannelType, string> = {
   email_resend: "Email (Resend)",
   discord_webhook: "Discord webhook",
+  slack_webhook: "Slack webhook",
+  webhook: "Webhook (generic)",
+}
+
+const TYPE_ORDER: ChannelType[] = [
+  "email_resend",
+  "discord_webhook",
+  "slack_webhook",
+  "webhook",
+]
+
+/** `Name: value` per line → a header object; blank and malformed lines are ignored. */
+function parseHeaders(input: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const line of input.split("\n")) {
+    const separator = line.indexOf(":")
+    if (separator <= 0) continue
+    const name = line.slice(0, separator).trim()
+    const value = line.slice(separator + 1).trim()
+    if (name !== "" && value !== "") out[name] = value
+  }
+  return out
 }
 
 interface FormState {
@@ -48,6 +72,9 @@ interface FormState {
   to: string
   webhookUrl: string
   mention: string
+  url: string
+  secret: string
+  headers: string
 }
 
 function emptyState(channel: ChannelListItem | undefined): FormState {
@@ -69,9 +96,20 @@ function emptyState(channel: ChannelListItem | undefined): FormState {
         : "",
     webhookUrl: "",
     mention:
-      channel !== undefined && type === "discord_webhook"
+      channel !== undefined &&
+      (type === "discord_webhook" || type === "slack_webhook")
         ? String(channel.configPublic.mention ?? "")
         : "",
+    url:
+      channel !== undefined &&
+      type === "webhook" &&
+      typeof channel.configPublic.host === "string"
+        ? `https://${channel.configPublic.host}${String(
+            channel.configPublic.path ?? ""
+          )}`
+        : "",
+    secret: "",
+    headers: "",
   }
 }
 
@@ -108,10 +146,15 @@ export function AddChannelDialog({
       ? state.from.trim() !== "" &&
         state.to.trim() !== "" &&
         (mode === "edit" || state.apiKey.trim() !== "")
-      : mode === "edit" || state.webhookUrl.trim() !== "")
+      : state.type === "webhook"
+        ? state.url.trim() !== ""
+        : mode === "edit" || state.webhookUrl.trim() !== "")
 
   const handleSubmit = async () => {
     setError(null)
+    // Secret fields are omitted when blank, which the API reads as "keep the
+    // stored value" — that is what makes edit mode work without ever sending
+    // a secret back to the browser first.
     const config: Record<string, unknown> =
       state.type === "email_resend"
         ? {
@@ -124,14 +167,24 @@ export function AddChannelDialog({
               ? { apiKey: state.apiKey.trim() }
               : {}),
           }
-        : {
-            ...(state.mention.trim() !== ""
-              ? { mention: state.mention.trim() }
-              : {}),
-            ...(state.webhookUrl.trim() !== ""
-              ? { webhookUrl: state.webhookUrl.trim() }
-              : {}),
-          }
+        : state.type === "webhook"
+          ? {
+              url: state.url.trim(),
+              ...(state.secret.trim() !== ""
+                ? { secret: state.secret.trim() }
+                : {}),
+              ...(state.headers.trim() !== ""
+                ? { headers: parseHeaders(state.headers) }
+                : {}),
+            }
+          : {
+              ...(state.mention.trim() !== ""
+                ? { mention: state.mention.trim() }
+                : {}),
+              ...(state.webhookUrl.trim() !== ""
+                ? { webhookUrl: state.webhookUrl.trim() }
+                : {}),
+            }
 
     try {
       if (mode === "create") {
@@ -170,7 +223,7 @@ export function AddChannelDialog({
           </DialogTitle>
           <DialogDescription>
             {mode === "create"
-              ? "Connect Discord or Resend email to receive notifications."
+              ? "Send notifications to Discord, Slack, email, or any HTTP endpoint."
               : "Secret fields left blank keep their stored value."}
           </DialogDescription>
         </DialogHeader>
@@ -199,12 +252,11 @@ export function AddChannelDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="email_resend">
-                    {TYPE_LABELS.email_resend}
-                  </SelectItem>
-                  <SelectItem value="discord_webhook">
-                    {TYPE_LABELS.discord_webhook}
-                  </SelectItem>
+                  {TYPE_ORDER.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {TYPE_LABELS[type]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             ) : (
@@ -239,6 +291,34 @@ export function AddChannelDialog({
               to={state.to}
               onToChange={(value) =>
                 setState((prev) => ({ ...prev, to: value }))
+              }
+            />
+          ) : state.type === "slack_webhook" ? (
+            <SlackChannelForm
+              mode={mode}
+              webhookUrl={state.webhookUrl}
+              onWebhookUrlChange={(value) =>
+                setState((prev) => ({ ...prev, webhookUrl: value }))
+              }
+              mention={state.mention}
+              onMentionChange={(value) =>
+                setState((prev) => ({ ...prev, mention: value }))
+              }
+            />
+          ) : state.type === "webhook" ? (
+            <WebhookChannelForm
+              mode={mode}
+              url={state.url}
+              onUrlChange={(value) =>
+                setState((prev) => ({ ...prev, url: value }))
+              }
+              secret={state.secret}
+              onSecretChange={(value) =>
+                setState((prev) => ({ ...prev, secret: value }))
+              }
+              headers={state.headers}
+              onHeadersChange={(value) =>
+                setState((prev) => ({ ...prev, headers: value }))
               }
             />
           ) : (

@@ -18,6 +18,8 @@ import {
   Bell,
   FolderKanban,
   LayoutDashboard,
+  Package,
+  ShieldAlert,
   SlidersHorizontal,
   UserCircle,
   Users,
@@ -111,6 +113,15 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <NavLink to="/" icon={LayoutDashboard} label="Dashboard" exact />
+              {/* Fleet-wide views: the triage queue and the "who uses X"
+                  index. Both answer questions the per-project screens
+                  structurally cannot. */}
+              <NavLink
+                to="/vulnerabilities"
+                icon={ShieldAlert}
+                label="Vulnerabilities"
+              />
+              <NavLink to="/packages" icon={Package} label="Packages" />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

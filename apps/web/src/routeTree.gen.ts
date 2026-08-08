@@ -13,8 +13,11 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
+import { Route as AuthedVulnerabilitiesRouteImport } from './routes/_authed/vulnerabilities'
 import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicSignupRouteImport } from './routes/_public/signup'
+import { Route as AuthedPackagesIndexRouteImport } from './routes/_authed/packages/index'
+import { Route as AuthedPackagesNameRouteImport } from './routes/_authed/packages/$name'
 import { Route as AuthedProjectsIndexRouteImport } from './routes/_authed/projects/index'
 import { Route as AuthedProjectsProjectIdRouteImport } from './routes/_authed/projects/$projectId'
 import { Route as AuthedSettingsIndexRouteImport } from './routes/_authed/settings/index'
@@ -47,6 +50,11 @@ const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedVulnerabilitiesRoute = AuthedVulnerabilitiesRouteImport.update({
+  id: '/vulnerabilities',
+  path: '/vulnerabilities',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const PublicLoginRoute = PublicLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -56,6 +64,16 @@ const PublicSignupRoute = PublicSignupRouteImport.update({
   id: '/signup',
   path: '/signup',
   getParentRoute: () => PublicRoute,
+} as any)
+const AuthedPackagesIndexRoute = AuthedPackagesIndexRouteImport.update({
+  id: '/packages/',
+  path: '/packages/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedPackagesNameRoute = AuthedPackagesNameRouteImport.update({
+  id: '/packages/$name',
+  path: '/packages/$name',
+  getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedProjectsIndexRoute = AuthedProjectsIndexRouteImport.update({
   id: '/projects/',
@@ -133,13 +151,16 @@ const AuthedProjectsProjectIdScansScanIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
   '/settings': typeof AuthedSettingsRouteWithChildren
+  '/vulnerabilities': typeof AuthedVulnerabilitiesRoute
   '/login': typeof PublicLoginRoute
   '/signup': typeof PublicSignupRoute
+  '/packages/$name': typeof AuthedPackagesNameRoute
   '/projects/$projectId': typeof AuthedProjectsProjectIdRouteWithChildren
   '/settings/defaults': typeof AuthedSettingsDefaultsRoute
   '/settings/notifications': typeof AuthedSettingsNotificationsRoute
   '/settings/profile': typeof AuthedSettingsProfileRoute
   '/settings/users': typeof AuthedSettingsUsersRoute
+  '/packages/': typeof AuthedPackagesIndexRoute
   '/projects/': typeof AuthedProjectsIndexRoute
   '/settings/': typeof AuthedSettingsIndexRoute
   '/projects/$projectId/pull-requests': typeof AuthedProjectsProjectIdPullRequestsRoute
@@ -151,12 +172,15 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof AuthedIndexRoute
+  '/vulnerabilities': typeof AuthedVulnerabilitiesRoute
   '/login': typeof PublicLoginRoute
   '/signup': typeof PublicSignupRoute
+  '/packages/$name': typeof AuthedPackagesNameRoute
   '/settings/defaults': typeof AuthedSettingsDefaultsRoute
   '/settings/notifications': typeof AuthedSettingsNotificationsRoute
   '/settings/profile': typeof AuthedSettingsProfileRoute
   '/settings/users': typeof AuthedSettingsUsersRoute
+  '/packages': typeof AuthedPackagesIndexRoute
   '/projects': typeof AuthedProjectsIndexRoute
   '/settings': typeof AuthedSettingsIndexRoute
   '/projects/$projectId/pull-requests': typeof AuthedProjectsProjectIdPullRequestsRoute
@@ -171,14 +195,17 @@ export interface FileRoutesById {
   '/_authed': typeof AuthedRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
   '/_authed/settings': typeof AuthedSettingsRouteWithChildren
+  '/_authed/vulnerabilities': typeof AuthedVulnerabilitiesRoute
   '/_public/login': typeof PublicLoginRoute
   '/_public/signup': typeof PublicSignupRoute
   '/_authed/': typeof AuthedIndexRoute
+  '/_authed/packages/$name': typeof AuthedPackagesNameRoute
   '/_authed/projects/$projectId': typeof AuthedProjectsProjectIdRouteWithChildren
   '/_authed/settings/defaults': typeof AuthedSettingsDefaultsRoute
   '/_authed/settings/notifications': typeof AuthedSettingsNotificationsRoute
   '/_authed/settings/profile': typeof AuthedSettingsProfileRoute
   '/_authed/settings/users': typeof AuthedSettingsUsersRoute
+  '/_authed/packages/': typeof AuthedPackagesIndexRoute
   '/_authed/projects/': typeof AuthedProjectsIndexRoute
   '/_authed/settings/': typeof AuthedSettingsIndexRoute
   '/_authed/projects/$projectId/pull-requests': typeof AuthedProjectsProjectIdPullRequestsRoute
@@ -193,13 +220,16 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/settings'
+    | '/vulnerabilities'
     | '/login'
     | '/signup'
+    | '/packages/$name'
     | '/projects/$projectId'
     | '/settings/defaults'
     | '/settings/notifications'
     | '/settings/profile'
     | '/settings/users'
+    | '/packages/'
     | '/projects/'
     | '/settings/'
     | '/projects/$projectId/pull-requests'
@@ -211,12 +241,15 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/vulnerabilities'
     | '/login'
     | '/signup'
+    | '/packages/$name'
     | '/settings/defaults'
     | '/settings/notifications'
     | '/settings/profile'
     | '/settings/users'
+    | '/packages'
     | '/projects'
     | '/settings'
     | '/projects/$projectId/pull-requests'
@@ -230,14 +263,17 @@ export interface FileRouteTypes {
     | '/_authed'
     | '/_public'
     | '/_authed/settings'
+    | '/_authed/vulnerabilities'
     | '/_public/login'
     | '/_public/signup'
     | '/_authed/'
+    | '/_authed/packages/$name'
     | '/_authed/projects/$projectId'
     | '/_authed/settings/defaults'
     | '/_authed/settings/notifications'
     | '/_authed/settings/profile'
     | '/_authed/settings/users'
+    | '/_authed/packages/'
     | '/_authed/projects/'
     | '/_authed/settings/'
     | '/_authed/projects/$projectId/pull-requests'
@@ -283,6 +319,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSettingsRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/vulnerabilities': {
+      id: '/_authed/vulnerabilities'
+      path: '/vulnerabilities'
+      fullPath: '/vulnerabilities'
+      preLoaderRoute: typeof AuthedVulnerabilitiesRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_public/login': {
       id: '/_public/login'
       path: '/login'
@@ -296,6 +339,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/signup'
       preLoaderRoute: typeof PublicSignupRouteImport
       parentRoute: typeof PublicRoute
+    }
+    '/_authed/packages/': {
+      id: '/_authed/packages/'
+      path: '/packages'
+      fullPath: '/packages/'
+      preLoaderRoute: typeof AuthedPackagesIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/packages/$name': {
+      id: '/_authed/packages/$name'
+      path: '/packages/$name'
+      fullPath: '/packages/$name'
+      preLoaderRoute: typeof AuthedPackagesNameRouteImport
+      parentRoute: typeof AuthedRoute
     }
     '/_authed/projects/': {
       id: '/_authed/projects/'
@@ -441,15 +498,21 @@ const AuthedProjectsProjectIdRouteWithChildren =
 
 interface AuthedRouteChildren {
   AuthedSettingsRoute: typeof AuthedSettingsRouteWithChildren
+  AuthedVulnerabilitiesRoute: typeof AuthedVulnerabilitiesRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
+  AuthedPackagesNameRoute: typeof AuthedPackagesNameRoute
   AuthedProjectsProjectIdRoute: typeof AuthedProjectsProjectIdRouteWithChildren
+  AuthedPackagesIndexRoute: typeof AuthedPackagesIndexRoute
   AuthedProjectsIndexRoute: typeof AuthedProjectsIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedSettingsRoute: AuthedSettingsRouteWithChildren,
+  AuthedVulnerabilitiesRoute: AuthedVulnerabilitiesRoute,
   AuthedIndexRoute: AuthedIndexRoute,
+  AuthedPackagesNameRoute: AuthedPackagesNameRoute,
   AuthedProjectsProjectIdRoute: AuthedProjectsProjectIdRouteWithChildren,
+  AuthedPackagesIndexRoute: AuthedPackagesIndexRoute,
   AuthedProjectsIndexRoute: AuthedProjectsIndexRoute,
 }
 

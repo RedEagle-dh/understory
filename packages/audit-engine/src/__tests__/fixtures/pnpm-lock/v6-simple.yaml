@@ -1,0 +1,28 @@
+lockfileVersion: '6.0'
+
+dependencies:
+  lodash:
+    specifier: ^4.17.15
+    version: 4.17.21
+
+devDependencies:
+  rimraf:
+    specifier: ^3.0.2
+    version: 3.0.2
+
+packages:
+
+  /glob@7.2.3:
+    resolution: {integrity: sha512-glob}
+    dev: true
+
+  /lodash@4.17.21:
+    resolution: {integrity: sha512-lodash}
+    dev: false
+
+  /rimraf@3.0.2:
+    resolution: {integrity: sha512-rimraf}
+    hasBin: true
+    dependencies:
+      glob: 7.2.3
+    dev: true

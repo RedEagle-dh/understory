@@ -21,7 +21,8 @@
     "jsonc-parser": "catalog:",
     "picomatch": "catalog:",
     "semver": "catalog:",
-    "smol-toml": "^1.7.1"
+    "smol-toml": "^1.7.1",
+    "yaml": "2.8.1"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

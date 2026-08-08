@@ -6,17 +6,24 @@ import type {
 } from '../types';
 import { parseBunLock } from './bun-lock';
 import {
+	basename,
 	detectManager,
 	findLockfile,
 	managerFromPackageManagerField,
 } from './detect';
 import { parseManifests } from './manifest';
 import { parsePackageLock } from './package-lock';
+import { parsePnpmLock, parsePnpmWorkspaceYaml } from './pnpm-lock';
+import { parseYarnLock } from './yarn-lock';
 
 export * from './bun-lock';
 export * from './detect';
 export * from './manifest';
 export * from './package-lock';
+export * from './pnpm-lock';
+export * from './reachability';
+export * from './yaml';
+export * from './yarn-lock';
 
 /** Dedupe key required by the design: `(workspace, name, version, depType)`. */
 function dedupeKey(dependency: ParsedDependency): string {
@@ -67,8 +74,24 @@ export function dedupeDependencies(
  * service. Nothing here touches the network or the filesystem.
  */
 export function parseLockfile(files: readonly FileEntry[]): DependencyGraph {
-	const manifests = parseManifests(files);
-	const warnings = [...manifests.warnings];
+	// pnpm keeps workspace globs AND catalogs outside package.json, so this has
+	// to be read before the manifests are indexed.
+	const workspaceYaml = files.find(
+		(file) =>
+			basename(file.path) === 'pnpm-workspace.yaml' &&
+			!file.path.includes('node_modules/')
+	);
+	const pnpmWorkspace =
+		workspaceYaml === undefined
+			? undefined
+			: parsePnpmWorkspaceYaml(workspaceYaml.content);
+
+	const manifests = parseManifests(files, {
+		workspacePatterns: pnpmWorkspace?.patterns,
+		catalog: pnpmWorkspace?.catalog,
+		catalogs: pnpmWorkspace?.catalogs,
+	});
+	const warnings = [...manifests.warnings, ...(pnpmWorkspace?.warnings ?? [])];
 
 	let manager: PackageManager | null = detectManager(files);
 	if (manager === null) {
@@ -109,6 +132,16 @@ export function parseLockfile(files: readonly FileEntry[]): DependencyGraph {
 				workspaceSet.add(workspace);
 			warnings.push(...result.warnings);
 		}
+	} else if (manager === 'pnpm') {
+		const result = parsePnpmLock(lockfile.content, manifests);
+		dependencies = result.dependencies;
+		for (const workspace of result.workspaces) workspaceSet.add(workspace);
+		warnings.push(...result.warnings);
+	} else if (manager === 'yarn') {
+		const result = parseYarnLock(lockfile.content, manifests);
+		dependencies = result.dependencies;
+		for (const workspace of result.workspaces) workspaceSet.add(workspace);
+		warnings.push(...result.warnings);
 	} else {
 		warnings.push(
 			`lockfiles for "${manager}" are not supported yet; no transitive dependencies were parsed`

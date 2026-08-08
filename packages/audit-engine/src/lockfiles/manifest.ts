@@ -66,25 +66,30 @@ function workspacePatterns(manifest: RawManifest): string[] {
 	return [];
 }
 
+/** Where `catalog:` ranges are looked up — root package.json or pnpm-workspace.yaml. */
+interface CatalogSource {
+	catalog?: Record<string, string>;
+	catalogs?: Record<string, Record<string, string>>;
+}
+
 /**
- * Resolve `catalog:` / `catalog:<group>` protocol ranges against the root
- * manifest's `catalog` / `catalogs` fields (bun & pnpm catalogs).
+ * Resolve `catalog:` / `catalog:<group>` protocol ranges against the workspace's
+ * `catalog` / `catalogs` tables (bun & pnpm catalogs).
  */
 function resolveCatalog(
-	root: RawManifest | null,
+	source: CatalogSource,
 	name: string,
 	rawRange: string
 ): string | undefined {
-	if (root === null) return undefined;
 	if (!rawRange.startsWith('catalog:')) return undefined;
 	const group = rawRange.slice('catalog:'.length).trim();
-	if (group === '' || group === 'default') return root.catalog?.[name];
-	return root.catalogs?.[group]?.[name];
+	if (group === '' || group === 'default') return source.catalog?.[name];
+	return source.catalogs?.[group]?.[name];
 }
 
 function collectDeps(
 	manifest: RawManifest,
-	root: RawManifest | null,
+	catalogSource: CatalogSource,
 	warnings: string[],
 	manifestPath: string
 ): DeclaredDependency[] {
@@ -93,7 +98,7 @@ function collectDeps(
 	const push = (name: string, rawRange: string, depType: DepType) => {
 		if (typeof name !== 'string' || name === '') return;
 		if (typeof rawRange !== 'string') return;
-		const resolved = resolveCatalog(root, name, rawRange);
+		const resolved = resolveCatalog(catalogSource, name, rawRange);
 		const range = resolved ?? rawRange;
 		if (rawRange.startsWith('catalog:') && resolved === undefined) {
 			warnings.push(
@@ -150,6 +155,18 @@ function indexByName(
 	return byName;
 }
 
+export interface ParseManifestsOptions {
+	/**
+	 * Extra workspace globs, unioned with the root package.json's `workspaces`.
+	 * pnpm declares its workspace members in `pnpm-workspace.yaml`, so without
+	 * these every package in a pnpm monorepo looks unmatched.
+	 */
+	workspacePatterns?: readonly string[];
+	/** Fallback `catalog:` tables, used for names the root manifest does not define. */
+	catalog?: Record<string, string>;
+	catalogs?: Record<string, Record<string, string>>;
+}
+
 /**
  * Parse every package.json in `files` into a workspace table.
  *
@@ -159,7 +176,10 @@ function indexByName(
  * dropping them would silently lose direct dependencies — but produce a
  * warning.
  */
-export function parseManifests(files: readonly FileEntry[]): ManifestSet {
+export function parseManifests(
+	files: readonly FileEntry[],
+	options: ParseManifestsOptions = {}
+): ManifestSet {
 	const warnings: string[] = [];
 	const manifestFiles = files.filter(
 		(file) =>
@@ -182,7 +202,21 @@ export function parseManifests(files: readonly FileEntry[]): ManifestSet {
 	}
 
 	const rootDir = rootFile === undefined ? '' : dirname(rootFile.path);
-	const patterns = rootJson === null ? [] : workspacePatterns(rootJson);
+	// Root package.json entries win; pnpm-workspace.yaml fills the gaps.
+	const catalogSource: CatalogSource = {
+		catalog:
+			rootJson?.catalog === undefined && options.catalog === undefined
+				? undefined
+				: { ...options.catalog, ...rootJson?.catalog },
+		catalogs:
+			rootJson?.catalogs === undefined && options.catalogs === undefined
+				? undefined
+				: { ...options.catalogs, ...rootJson?.catalogs },
+	};
+	const patterns = [
+		...(rootJson === null ? [] : workspacePatterns(rootJson)),
+		...(options.workspacePatterns ?? []),
+	];
 	const positive = patterns.filter((p) => !p.startsWith('!'));
 	const negative = patterns
 		.filter((p) => p.startsWith('!'))
@@ -228,7 +262,12 @@ export function parseManifests(files: readonly FileEntry[]): ManifestSet {
 			}
 		}
 
-		const deps = collectDeps(parsed.json, rootJson, warnings, file.path);
+		const deps = collectDeps(
+			parsed.json,
+			catalogSource,
+			warnings,
+			file.path
+		);
 		const manifest: WorkspaceManifest = {
 			path: workspacePath,
 			manifestPath: file.path,
@@ -267,8 +306,8 @@ export function parseManifests(files: readonly FileEntry[]): ManifestSet {
 		root: workspaces.find((w) => w.isRoot),
 		workspaces,
 		byPath,
-		catalog: rootJson?.catalog,
-		catalogs: rootJson?.catalogs,
+		catalog: catalogSource.catalog,
+		catalogs: catalogSource.catalogs,
 		warnings,
 	};
 }

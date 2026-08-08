@@ -81,6 +81,15 @@ export const findings = sqliteTable(
 		),
 		index('findings_first_seen_scan_id_idx').on(t.firstSeenScanId),
 		index('findings_resolved_scan_id_idx').on(t.resolvedScanId),
+		/**
+		 * The two cross-project views. Every per-project index above leads with
+		 * `projectId`, which is exactly the column the global inbox and the
+		 * package index do NOT filter on — without these, "every open critical"
+		 * and "which projects ship lodash" both degrade to a full scan of the
+		 * findings table.
+		 */
+		index('findings_state_severity_idx').on(t.state, t.severity),
+		index('findings_state_package_name_idx').on(t.state, t.packageName),
 	]
 );
 

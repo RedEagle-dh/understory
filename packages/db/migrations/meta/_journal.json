@@ -43,6 +43,13 @@
       "when": 1786125762626,
       "tag": "0005_fair_franklin_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1786188158842,
+      "tag": "0006_mighty_supernaut",
+      "breakpoints": true
     }
   ]
 }

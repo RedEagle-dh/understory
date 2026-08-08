@@ -30,6 +30,37 @@ export const advisories = sqliteTable('advisories', {
 	/** JSON: the raw upstream record(s) this advisory was normalized from, kept for debugging/re-normalization. */
 	rawJson: text('raw_json'),
 	updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+
+	/* ---------------------------------------------------------------- */
+	/* Exploitation signals                                             */
+	/* ---------------------------------------------------------------- */
+
+	/**
+	 * FIRST's Exploit Prediction Scoring System: probability (0–1) that this
+	 * CVE will be exploited in the wild within 30 days. Severity says how bad
+	 * exploitation *would* be; EPSS says how likely it is — a moderate at 0.7
+	 * deserves attention a critical at 0.0001 does not.
+	 *
+	 * `null` means "not scored", which is not the same as zero: EPSS only
+	 * covers published CVEs, so a GHSA without a CVE alias never gets a score.
+	 */
+	epssScore: real('epss_score'),
+	/** Rank of `epssScore` within all scored CVEs (0–1). */
+	epssPercentile: real('epss_percentile'),
+
+	/**
+	 * Date CISA added the CVE to the Known Exploited Vulnerabilities catalogue.
+	 * Non-null means exploitation is confirmed and observed, not predicted —
+	 * the strongest prioritisation signal available, and the reason a project
+	 * may let KEV membership override its auto-PR severity threshold.
+	 */
+	kevAddedAt: integer('kev_added_at', { mode: 'timestamp_ms' }),
+	/** CISA's "known to be used in ransomware campaigns" flag. */
+	kevKnownRansomware: integer('kev_known_ransomware', { mode: 'boolean' }),
+	/** Last time the EPSS/KEV feeds were consulted for this advisory. */
+	threatIntelUpdatedAt: integer('threat_intel_updated_at', {
+		mode: 'timestamp_ms',
+	}),
 });
 
 export type Advisory = typeof advisories.$inferSelect;

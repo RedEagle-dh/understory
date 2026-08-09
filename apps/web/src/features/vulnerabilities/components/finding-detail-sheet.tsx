@@ -14,6 +14,7 @@ import { DepTypeBadge } from "@/components/common/dep-type-badge"
 import { FixAvailability } from "@/components/common/fix-availability"
 import { RelativeTime } from "@/components/common/relative-time"
 import { SeverityBadge } from "@/components/common/severity-badge"
+import { EpssBadge, KevBadge } from "@/components/common/threat-badge"
 import { QueryBoundary } from "@/components/states/query-boundary"
 import { formatAbsoluteDate } from "@/lib/format"
 import { findingQueryOptions } from "../api"
@@ -117,6 +118,17 @@ export function FindingDetailSheet({
                           CVSS {finding.advisory.cvssScore.toFixed(1)}
                         </span>
                       )}
+                      {/* Severity says how bad it would be; these say how
+                          likely it is to happen. Both, never one instead
+                          of the other. */}
+                      <KevBadge
+                        addedAt={finding.advisory.kevAddedAt}
+                        knownRansomware={finding.advisory.kevKnownRansomware}
+                      />
+                      <EpssBadge
+                        score={finding.advisory.epssScore}
+                        percentile={finding.advisory.epssPercentile}
+                      />
                       {finding.advisory.cvssVector !== null && (
                         <span className="font-heading">
                           {finding.advisory.cvssVector}

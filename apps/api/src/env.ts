@@ -46,6 +46,14 @@ export const env = {
 	PYPI_REGISTRY_URL: process.env.PYPI_REGISTRY_URL ?? 'https://pypi.org',
 	OSV_API_URL: process.env.OSV_API_URL ?? 'https://api.osv.dev',
 	DISABLE_OSV: process.env.DISABLE_OSV === 'true',
+	/** FIRST's EPSS API — exploitation probability per CVE. */
+	EPSS_API_URL: process.env.EPSS_API_URL ?? 'https://api.first.org/data/v1/epss',
+	/** CISA's Known Exploited Vulnerabilities catalogue (one JSON document). */
+	KEV_FEED_URL:
+		process.env.KEV_FEED_URL ??
+		'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json',
+	/** Skips both feeds — for air-gapped installs, like DISABLE_OSV. */
+	DISABLE_THREAT_INTEL: process.env.DISABLE_THREAT_INTEL === 'true',
 	SCAN_CONCURRENCY: optionalNumber('SCAN_CONCURRENCY', 3),
 	ENABLE_LOCKFILE_REGEN: process.env.ENABLE_LOCKFILE_REGEN !== 'false',
 	TRUST_PROXY: process.env.TRUST_PROXY === 'true',

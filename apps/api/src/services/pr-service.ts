@@ -66,6 +66,8 @@ const SEVERITY_RANK: Record<Severity, number> = {
 const LOCKFILE_NAMES: Partial<Record<PackageManager, string>> = {
 	npm: 'package-lock.json',
 	bun: 'bun.lock',
+	pnpm: 'pnpm-lock.yaml',
+	yarn: 'yarn.lock',
 	uv: 'uv.lock',
 	poetry: 'poetry.lock',
 };
@@ -80,6 +82,8 @@ const MANIFEST_BASENAME: Record<Ecosystem, string> = {
 const LOCKFILE_COMMANDS: Partial<Record<PackageManager, string>> = {
 	npm: 'npm install',
 	bun: 'bun install',
+	pnpm: 'pnpm install --lockfile-only',
+	yarn: 'yarn install',
 	uv: 'uv lock',
 	poetry: 'poetry lock',
 };

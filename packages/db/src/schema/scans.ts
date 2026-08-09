@@ -140,6 +140,12 @@ export const dependencySetEntries = sqliteTable(
 	},
 	(t) => [
 		index('dependency_set_entries_set_id_name_idx').on(t.setId, t.name),
+		/**
+		 * Leading `name`, deliberately: the cross-project package index asks
+		 * "who uses this package" without knowing a set id, and the composite
+		 * above cannot serve that direction.
+		 */
+		index('dependency_set_entries_name_idx').on(t.name),
 		index('dependency_set_entries_set_id_is_direct_idx').on(
 			t.setId,
 			t.isDirect

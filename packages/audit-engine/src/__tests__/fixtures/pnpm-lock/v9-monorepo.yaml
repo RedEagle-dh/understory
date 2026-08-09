@@ -1,0 +1,117 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+catalogs:
+
+  default:
+    typescript:
+      specifier: ^5.4.5
+      version: 5.4.5
+
+importers:
+
+  .:
+    dependencies:
+      lodash:
+        specifier: ^4.17.15
+        version: 4.17.21
+    devDependencies:
+      rimraf:
+        specifier: ^3.0.2
+        version: 3.0.2
+      typescript:
+        specifier: 'catalog:'
+        version: 5.4.5
+
+  apps/web:
+    dependencies:
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.2.0(react@18.2.0)
+      shared:
+        specifier: workspace:*
+        version: link:../../packages/shared
+    optionalDependencies:
+      fsevents:
+        specifier: ^2.3.3
+        version: 2.3.3
+
+packages:
+
+  fsevents@2.3.3:
+    resolution: {integrity: sha512-fsevents}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
+
+  glob@7.2.3:
+    resolution: {integrity: sha512-glob}
+    deprecated: Glob versions prior to v9 are no longer supported
+
+  js-tokens@4.0.0:
+    resolution: {integrity: sha512-jstokens}
+
+  lodash@4.17.21:
+    resolution: {integrity: sha512-lodash}
+
+  loose-envify@1.4.0:
+    resolution: {integrity: sha512-loose}
+    hasBin: true
+
+  react@18.2.0:
+    resolution: {integrity: sha512-react}
+    engines: {node: '>=0.10.0'}
+
+  react-dom@18.2.0:
+    resolution: {integrity: sha512-reactdom}
+    peerDependencies:
+      react: ^18.2.0
+
+  rimraf@3.0.2:
+    resolution: {integrity: sha512-rimraf}
+    deprecated: Rimraf versions prior to v4 are no longer supported
+
+  scheduler@0.23.0:
+    resolution: {integrity: sha512-scheduler}
+
+  typescript@5.4.5:
+    resolution: {integrity: sha512-typescript}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+snapshots:
+
+  fsevents@2.3.3:
+    optional: true
+
+  glob@7.2.3: {}
+
+  js-tokens@4.0.0: {}
+
+  lodash@4.17.21: {}
+
+  loose-envify@1.4.0:
+    dependencies:
+      js-tokens: 4.0.0
+
+  react@18.2.0:
+    dependencies:
+      loose-envify: 1.4.0
+
+  react-dom@18.2.0(react@18.2.0):
+    dependencies:
+      loose-envify: 1.4.0
+      react: 18.2.0
+      scheduler: 0.23.0
+
+  rimraf@3.0.2:
+    dependencies:
+      glob: 7.2.3
+
+  scheduler@0.23.0:
+    dependencies:
+      loose-envify: 1.4.0
+
+  typescript@5.4.5: {}

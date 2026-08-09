@@ -59,6 +59,16 @@ export const projects = sqliteTable(
 		autoPrMaxBump: text('auto_pr_max_bump', { enum: BUMP_KINDS })
 			.notNull()
 			.default('minor'),
+		/**
+		 * When set, a finding whose CVE is in CISA's Known Exploited
+		 * Vulnerabilities catalogue opens an auto-PR regardless of
+		 * `autoPrMinSeverity`. Confirmed in-the-wild exploitation outranks a
+		 * severity label that was assigned before anyone was being attacked.
+		 * `autoPrMaxBump` still applies — this never ships a surprise major.
+		 */
+		autoPrKevOverride: integer('auto_pr_kev_override', { mode: 'boolean' })
+			.notNull()
+			.default(false),
 		/** Open PRs bumping outdated direct deps to latest (not just security fixes). */
 		autoBumpEnabled: integer('auto_bump_enabled', { mode: 'boolean' })
 			.notNull()

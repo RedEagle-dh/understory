@@ -6,7 +6,7 @@ import {
 	type Severity,
 } from '@workspace/audit-engine';
 import { type Db, schema } from '@workspace/db';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, like, or, sql } from 'drizzle-orm';
 
 export type AdvisoryRow = typeof schema.advisories.$inferSelect;
 export type AdvisoryRangeRow = typeof schema.advisoryRanges.$inferSelect;
@@ -196,6 +196,18 @@ export function createAdvisoriesStore(db: Db) {
 							null,
 						rawJson: JSON.stringify(advisory.raw ?? null),
 						updatedAt: now,
+						// Owned by the threat-intel job, never by a scan. These
+						// are carried over so `rowIndex` stays an accurate
+						// mirror of the row; the upsert's `set` clause below
+						// deliberately omits them, so a scan can neither write
+						// nor clear them.
+						epssScore: existing?.epssScore ?? null,
+						epssPercentile: existing?.epssPercentile ?? null,
+						kevAddedAt: existing?.kevAddedAt ?? null,
+						kevKnownRansomware:
+							existing?.kevKnownRansomware ?? null,
+						threatIntelUpdatedAt:
+							existing?.threatIntelUpdatedAt ?? null,
 					};
 
 					tx.insert(schema.advisories)
@@ -418,6 +430,132 @@ export function createAdvisoriesStore(db: Db) {
 				})
 				.from(schema.advisorySources)
 				.where(eq(schema.advisorySources.source, source));
+		},
+
+		/**
+		 * Advisories due a threat-intel refresh, each with its CVE aliases.
+		 *
+		 * Keyed on the CVE rather than the advisory id because both feeds are
+		 * CVE-indexed: EPSS scores CVEs, and CISA's catalogue lists them. A
+		 * GHSA that was never assigned a CVE therefore has nothing to look up,
+		 * and is excluded by the join rather than fetched and discarded.
+		 */
+		async advisoriesNeedingThreatIntel(
+			staleBefore: Date,
+			limit: number
+		): Promise<{ advisoryId: string; cveIds: string[] }[]> {
+			const rows = await db
+				.select({
+					advisoryId: schema.advisories.id,
+					alias: schema.advisoryAliases.alias,
+				})
+				.from(schema.advisories)
+				.innerJoin(
+					schema.advisoryAliases,
+					eq(schema.advisoryAliases.advisoryId, schema.advisories.id)
+				)
+				.where(
+					and(
+						like(schema.advisoryAliases.alias, 'CVE-%'),
+						or(
+							sql`${schema.advisories.threatIntelUpdatedAt} is null`,
+							sql`${schema.advisories.threatIntelUpdatedAt} < ${staleBefore.getTime()}`
+						)
+					)
+				)
+				.orderBy(schema.advisories.id)
+				.limit(limit);
+
+			const byAdvisory = new Map<string, string[]>();
+			for (const row of rows) {
+				const bucket = byAdvisory.get(row.advisoryId);
+				if (bucket === undefined)
+					byAdvisory.set(row.advisoryId, [row.alias]);
+				else bucket.push(row.alias);
+			}
+			return [...byAdvisory].map(([advisoryId, cveIds]) => ({
+				advisoryId,
+				cveIds,
+			}));
+		},
+
+		/**
+		 * Writes the exploitation signals. `threatIntelUpdatedAt` is stamped
+		 * even when the feeds had nothing to say about an advisory, so one that
+		 * nobody scores is not re-queried on every single run.
+		 *
+		 * `writeEpss` / `writeKev` exist because the two feeds fail
+		 * independently. A `null` from a feed that answered means "this CVE is
+		 * genuinely not listed/scored" and must be written; a `null` from a
+		 * feed that was unreachable means nothing at all, and writing it would
+		 * silently erase a KEV listing because CISA had a bad minute.
+		 */
+		async applyThreatIntel(
+			rows: readonly {
+				advisoryId: string;
+				epssScore: number | null;
+				epssPercentile: number | null;
+				kevAddedAt: Date | null;
+				kevKnownRansomware: boolean | null;
+			}[],
+			now: Date,
+			options: { writeEpss: boolean; writeKev: boolean }
+		): Promise<number> {
+			if (rows.length === 0) return 0;
+			if (!options.writeEpss && !options.writeKev) return 0;
+			db.transaction((tx) => {
+				for (const row of rows) {
+					tx.update(schema.advisories)
+						.set({
+							...(options.writeEpss
+								? {
+										epssScore: row.epssScore,
+										epssPercentile: row.epssPercentile,
+									}
+								: {}),
+							...(options.writeKev
+								? {
+										kevAddedAt: row.kevAddedAt,
+										kevKnownRansomware:
+											row.kevKnownRansomware,
+									}
+								: {}),
+							threatIntelUpdatedAt: now,
+						})
+						.where(eq(schema.advisories.id, row.advisoryId))
+						.run();
+				}
+			});
+			return rows.length;
+		},
+
+		/**
+		 * Which of these advisories CISA lists as exploited in the wild.
+		 * One query for a whole scan diff, so the auto-PR gate does not issue
+		 * a lookup per finding.
+		 */
+		async kevListedIds(
+			advisoryIds: readonly string[]
+		): Promise<Set<string>> {
+			const out = new Set<string>();
+			if (advisoryIds.length === 0) return out;
+			const unique = [...new Set(advisoryIds)];
+			for (let index = 0; index < unique.length; index += 200) {
+				const rows = await db
+					.select({ id: schema.advisories.id })
+					.from(schema.advisories)
+					.where(
+						and(
+							inArray(
+								schema.advisories.id,
+								unique.slice(index, index + 200)
+							),
+							sql`${schema.advisories.kevAddedAt} is not null`
+						)
+					);
+				for (const row of rows) out.add(row.id);
+			}
+			return out;
 		},
 
 		/** Accepts a canonical id or any known alias. */

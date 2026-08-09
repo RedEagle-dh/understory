@@ -58,6 +58,7 @@ function toProjectView(row: ProjectRow) {
 		autoPrEnabled: row.autoPrEnabled,
 		autoPrMinSeverity: row.autoPrMinSeverity,
 		autoPrMaxBump: row.autoPrMaxBump,
+		autoPrKevOverride: row.autoPrKevOverride,
 		autoBumpEnabled: row.autoBumpEnabled,
 		autoBumpMaxKind: row.autoBumpMaxKind,
 		autoBumpMinReleaseAgeHours: row.autoBumpMinReleaseAgeHours,
@@ -350,6 +351,7 @@ export function projectsModule() {
 					autoPrEnabled: t.Optional(t.Boolean()),
 					autoPrMinSeverity: t.Optional(Severity),
 					autoPrMaxBump: t.Optional(BumpKind),
+					autoPrKevOverride: t.Optional(t.Boolean()),
 					autoBumpEnabled: t.Optional(t.Boolean()),
 					autoBumpMaxKind: t.Optional(BumpKind),
 					autoBumpMinReleaseAgeHours: t.Optional(

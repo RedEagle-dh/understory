@@ -476,14 +476,14 @@ describe('parseLockfile edge cases', () => {
 		expect(graph.warnings.join('\n')).toContain('no lockfile found');
 	});
 
-	test('reports unsupported lockfile formats instead of failing', () => {
+	test('reports an empty lockfile instead of failing', () => {
 		const graph = parseLockfile([
 			file('package.json', '{}'),
 			file('yarn.lock', '# yarn'),
 		]);
 		expect(graph.manager).toBe('yarn');
 		expect(graph.dependencies).toEqual([]);
-		expect(graph.warnings.join('\n')).toContain('are not supported yet');
+		expect(graph.warnings.join('\n')).toContain('no entries were parsed');
 	});
 
 	test('reports binary bun.lockb', () => {

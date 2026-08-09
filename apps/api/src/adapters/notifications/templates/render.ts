@@ -197,6 +197,189 @@ export function toDiscordEmbeds(
 	return enforceTotalBudget(embeds);
 }
 
+/* -------------------------------------------------------------------------- */
+/* Slack                                                                      */
+/* -------------------------------------------------------------------------- */
+
+/* Slack's documented limits. */
+const SLACK_MAX_BLOCKS = 50;
+const SLACK_MAX_SECTION_TEXT = 3000;
+const SLACK_MAX_HEADER = 150;
+
+export type SlackBlock =
+	| { type: 'header'; text: { type: 'plain_text'; text: string } }
+	| { type: 'section'; text: { type: 'mrkdwn'; text: string } }
+	| { type: 'context'; elements: { type: 'mrkdwn'; text: string }[] }
+	| { type: 'divider' };
+
+/**
+ * Slack's mrkdwn is NOT Markdown: links are `<url|label>`, and `&`, `<`, `>`
+ * are the only characters that must be escaped. Escaping the usual Markdown
+ * punctuation instead would put backslashes in front of package names.
+ */
+export function escapeSlack(value: string): string {
+	return value
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;');
+}
+
+function slackLink(url: string, label: string): string {
+	return `<${escapeSlack(url)}|${escapeSlack(label)}>`;
+}
+
+/**
+ * Block Kit rendering of a {@link NotificationMessage}: a header, the summary,
+ * one section per group, and a context line for the deep link and footer.
+ * Sections beyond the block budget collapse into a "+N more" line rather than
+ * disappearing.
+ */
+export function toSlackBlocks(message: NotificationMessage): SlackBlock[] {
+	const blocks: SlackBlock[] = [
+		{
+			type: 'header',
+			// Header blocks are plain_text: no links, no markup, hard 150 cap.
+			text: {
+				type: 'plain_text',
+				text: clamp(message.title, SLACK_MAX_HEADER),
+			},
+		},
+		{
+			type: 'section',
+			text: {
+				type: 'mrkdwn',
+				text: clamp(
+					escapeSlack(message.summary),
+					SLACK_MAX_SECTION_TEXT
+				),
+			},
+		},
+	];
+
+	// header + summary + context = 3; leave one slot for the overflow notice.
+	const budget = SLACK_MAX_BLOCKS - 4;
+	const shown = Math.min(message.sections.length, budget);
+
+	for (let index = 0; index < shown; index += 1) {
+		const section = message.sections[index];
+		if (section === undefined) continue;
+		const lines = section.lines.map((line) => {
+			const severity =
+				line.severity === undefined
+					? ''
+					: `\`${line.severity.toUpperCase()}\` `;
+			const body =
+				line.url === undefined
+					? escapeSlack(line.text)
+					: slackLink(line.url, line.text);
+			return `• ${severity}${body}`;
+		});
+		const heading =
+			section.heading === undefined
+				? ''
+				: `*${escapeSlack(section.heading)}*\n`;
+		blocks.push({
+			type: 'section',
+			text: {
+				type: 'mrkdwn',
+				text: clamp(
+					`${heading}${lines.join('\n')}`,
+					SLACK_MAX_SECTION_TEXT
+				),
+			},
+		});
+	}
+
+	const dropped = message.sections.length - shown;
+	if (dropped > 0) {
+		blocks.push({
+			type: 'section',
+			text: {
+				type: 'mrkdwn',
+				text:
+					message.url === undefined
+						? `_+${dropped} more section(s) omitted._`
+						: `_+${dropped} more section(s) omitted — ${slackLink(message.url, 'open the full report')}._`,
+			},
+		});
+	}
+
+	const context: string[] = [];
+	if (message.url !== undefined) {
+		context.push(slackLink(message.url, 'Open in understory'));
+	}
+	if (message.footer !== undefined) context.push(escapeSlack(message.footer));
+	if (context.length > 0) {
+		blocks.push({
+			type: 'context',
+			elements: [{ type: 'mrkdwn', text: context.join('  ·  ') }],
+		});
+	}
+
+	return blocks;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Generic webhook                                                            */
+/* -------------------------------------------------------------------------- */
+
+export interface WebhookPayload {
+	/** Schema version, so a receiver can refuse a shape it does not know. */
+	version: 1;
+	event: NotificationMessage['event'];
+	sentAt: string;
+	title: string;
+	summary: string;
+	severity: Severity | null;
+	url: string | null;
+	project: { id: string; name: string } | null;
+	sections: {
+		heading: string | null;
+		lines: { text: string; url: string | null; severity: Severity | null }[];
+	}[];
+	footer: string | null;
+	/** Plain-text rendering, for receivers that just want something to print. */
+	text: string;
+}
+
+/**
+ * The generic webhook body. Deliberately the domain message rather than a
+ * provider's payload shape: the receiver is unknown, so this hands over
+ * structured data and lets whatever is on the other end decide how to render
+ * it. `version` is the contract that lets the shape change later.
+ */
+export function toWebhookPayload(
+	message: NotificationMessage,
+	now: Date = new Date()
+): WebhookPayload {
+	return {
+		version: 1,
+		event: message.event,
+		sentAt: now.toISOString(),
+		title: message.title,
+		summary: message.summary,
+		severity: message.severity ?? null,
+		url: message.url ?? null,
+		project:
+			message.projectId === undefined
+				? null
+				: {
+						id: message.projectId,
+						name: message.projectName ?? '',
+					},
+		sections: message.sections.map((section) => ({
+			heading: section.heading ?? null,
+			lines: section.lines.map((line) => ({
+				text: line.text,
+				url: line.url ?? null,
+				severity: line.severity ?? null,
+			})),
+		})),
+		footer: message.footer ?? null,
+		text: toPlainText(message),
+	};
+}
+
 /**
  * Discord also caps the SUM of all textual fields at 6000 characters; trim
  * descriptions from the tail until the whole payload fits.

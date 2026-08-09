@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import type { PackageManager } from '@workspace/audit-engine';
+import { isBerryLockfile, type PackageManager } from '@workspace/audit-engine';
 
 /**
  * Regenerating the lockfile is what keeps an opened PR green in the target
@@ -67,6 +67,16 @@ const INSTALL_COMMANDS: Partial<Record<PackageManager, string[]>> = {
 		'--loglevel=error',
 	],
 	bun: ['bun', 'install', '--lockfile-only', '--ignore-scripts'],
+	pnpm: [
+		'pnpm',
+		'install',
+		'--lockfile-only',
+		'--ignore-scripts',
+		'--reporter=silent',
+	],
+	// Berry's only lockfile-only mode. Yarn 1 has no equivalent — see
+	// `unsupportedReason` — so this command is never reached for a v1 lockfile.
+	yarn: ['yarn', 'install', '--mode=update-lockfile'],
 	uv: ['uv', 'lock'],
 	poetry: ['poetry', 'lock'],
 };
@@ -82,6 +92,16 @@ const UPDATE_COMMANDS: Partial<Record<PackageManager, string[]>> = {
 		'--loglevel=error',
 	],
 	bun: ['bun', 'update', '--lockfile-only', '--ignore-scripts'],
+	pnpm: [
+		'pnpm',
+		'update',
+		'--lockfile-only',
+		'--ignore-scripts',
+		'--reporter=silent',
+	],
+	// Berry's `yarn up` rewrites package.json ranges as a side effect, which
+	// would silently widen the PR beyond what was planned. Locked-version-only
+	// bumps are therefore refused for yarn rather than approximated.
 	uv: ['uv', 'lock'],
 	poetry: ['poetry', 'update', '--lock'],
 };
@@ -97,9 +117,38 @@ const TARGET_ARGS: Partial<
 const MANIFEST_BASENAMES: Partial<Record<PackageManager, string>> = {
 	npm: 'package.json',
 	bun: 'package.json',
+	pnpm: 'package.json',
+	yarn: 'package.json',
 	uv: 'pyproject.toml',
 	poetry: 'pyproject.toml',
 };
+
+/**
+ * Reasons a (manager, lockfile) pair cannot be regenerated at all, decided
+ * before any process is spawned.
+ *
+ * Yarn 1 is the interesting one: it has no lockfile-only install mode, so the
+ * only way to refresh a `yarn.lock` is a real `yarn install` that downloads and
+ * unpacks every dependency into the server's sandbox. That trades this tool's
+ * central guarantee — scanned repositories never get their code executed or
+ * even materialised — for a green CI badge, which is not a trade worth making.
+ * Yarn 1 projects get a manifest-only PR and a note to run `yarn install`.
+ */
+function unsupportedReason(
+	manager: PackageManager,
+	lockfileContent: string,
+	hasUpdateTargets: boolean
+): string | null {
+	if (manager === 'yarn') {
+		if (!isBerryLockfile(lockfileContent)) {
+			return 'yarn 1 has no lockfile-only install mode, so the lockfile cannot be refreshed without a full install';
+		}
+		if (hasUpdateTargets) {
+			return 'yarn cannot bump a locked version without also rewriting package.json ranges';
+		}
+	}
+	return null;
+}
 
 /** `a/b/c` → rejects anything that could escape the sandbox. */
 function isSafeRelativePath(path: string): boolean {
@@ -154,16 +203,29 @@ export async function regenerateLockfile(
 	input: LockfileRegenInput
 ): Promise<LockfileRegenResult> {
 	const installCommand = INSTALL_COMMANDS[input.manager];
-	const updateCommand = UPDATE_COMMANDS[input.manager];
 	const manifestBasename = MANIFEST_BASENAMES[input.manager];
-	if (
-		installCommand === undefined ||
-		updateCommand === undefined ||
-		manifestBasename === undefined
-	) {
+	if (installCommand === undefined || manifestBasename === undefined) {
 		return {
 			ok: false,
 			reason: `lockfile regeneration is not supported for ${input.manager}`,
+		};
+	}
+
+	const requestedTargets = [...new Set(input.updateTargets ?? [])].filter(
+		(name) => name !== ''
+	);
+	const unsupported = unsupportedReason(
+		input.manager,
+		input.lockfile.content,
+		requestedTargets.length > 0
+	);
+	if (unsupported !== null) return { ok: false, reason: unsupported };
+
+	const updateCommand = UPDATE_COMMANDS[input.manager];
+	if (requestedTargets.length > 0 && updateCommand === undefined) {
+		return {
+			ok: false,
+			reason: `${input.manager} cannot bump a locked version without a manifest change`,
 		};
 	}
 
@@ -196,9 +258,7 @@ export async function regenerateLockfile(
 		};
 	}
 
-	const targets = [...new Set(input.updateTargets ?? [])].filter(
-		(name) => name !== ''
-	);
+	const targets = requestedTargets;
 	const rootDirectory = dirname(root.path) === '.' ? '' : dirname(root.path);
 
 	const directory = await mkdtemp(join(tmpdir(), 'understory-lock-'));
@@ -274,7 +334,7 @@ export async function regenerateLockfile(
 			return { ok: true };
 		}
 
-		if (targets.length > 0) {
+		if (targets.length > 0 && updateCommand !== undefined) {
 			const targetArgs = TARGET_ARGS[input.manager]?.(targets) ?? [
 				...targets,
 			];

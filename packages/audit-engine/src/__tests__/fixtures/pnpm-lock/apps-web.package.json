@@ -1,0 +1,10 @@
+{
+	"name": "web",
+	"dependencies": {
+		"react-dom": "^18.2.0",
+		"shared": "workspace:*"
+	},
+	"optionalDependencies": {
+		"fsevents": "^2.3.3"
+	}
+}

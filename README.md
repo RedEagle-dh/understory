@@ -14,7 +14,7 @@
 
 </div>
 
-Point understory at your GitHub repositories and it scans them every hour: **every** dependency — production, dev, peer, optional, direct *and* transitive, straight from the lockfile — checked against the npm advisory database **and** OSV.dev, with outdated-version detection against the npm registry. It notifies you through Discord or email, and opens version-bump pull requests: manually from the UI, automatically when a fixable vulnerability appears, or automatically for routine updates once a release has survived a configurable supply-chain cooldown.
+Point understory at your GitHub repositories and it scans them every hour: **every** dependency — production, dev, peer, optional, direct *and* transitive, straight from the lockfile — checked against the npm advisory database **and** OSV.dev, with outdated-version detection against the npm registry. It notifies you through Discord, Slack, email or a signed webhook, and opens version-bump pull requests: manually from the UI, automatically when a fixable vulnerability appears, or automatically for routine updates once a release has survived a configurable supply-chain cooldown.
 
 Everything runs in a single container with a single SQLite file. No SaaS, no agents in your CI, no code execution from scanned repositories.
 
@@ -24,11 +24,13 @@ Everything runs in a single container with a single SQLite file. No SaaS, no age
 
 ## Features
 
-- **Full dependency extraction** — parses `package-lock.json` (v1/v2/v3) and `bun.lock` including workspaces, `catalog:` ranges, peer dependencies, and depth. Snapshots are content-addressed by lockfile hash, so unchanged repositories cost almost nothing to rescan.
+- **Full dependency extraction** — parses `package-lock.json` (v1/v2/v3), `bun.lock`, `pnpm-lock.yaml` (v5.4/v6/v9) and `yarn.lock` (classic *and* berry), including workspaces, `catalog:` ranges, peer dependencies, and depth. Lockfiles that don't tag entries `dev`/`optional` get their dependency types derived by walking the graph from the declared roots, so a package is only "dev" when every path to it starts in a `devDependencies` block. Snapshots are content-addressed by lockfile hash, so unchanged repositories cost almost nothing to rescan.
 - **Two advisory sources, one truth** — npm bulk advisories and OSV.dev, normalized and merged by canonical ID (GHSA → CVE → OSV) with alias cross-referencing. Fix versions are computed across *all* ranges affecting a package, not taken on faith.
+- **Ranked by exploitation, not just severity** — every advisory is enriched nightly with its [EPSS](https://www.first.org/epss/) score (probability of exploitation in the next 30 days) and its presence in [CISA's KEV catalogue](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) (exploitation *observed*, not predicted). The triage queue sorts by that, so a moderate attackers are actively using outranks a critical nobody has ever weaponised. Projects can opt in to letting a KEV listing override their auto-PR severity threshold.
+- **Fleet-wide views** — a global vulnerability inbox across every repository, and a package index answering the question a supply-chain incident actually poses: *which of my repos ship `lodash`, at which versions?* One search instead of opening forty projects.
 - **Scan diffing** — every scan knows which findings are new, which resolved, and which majors just appeared; one indexed query, no snapshot comparison. Diffs drive notifications, so you hear about changes — not about the same finding every hour.
 - **Considerate scheduling** — a per-minute dispatcher with per-project offsets (no thundering herd), bounded concurrency, ETag caching against GitHub and the registry, and exponential backoff for failing projects.
-- **Notifications** — Discord webhooks and email (via [Resend](https://resend.com)), with global or per-project rules, severity thresholds, delivery dedupe, and retries with backoff. A daily digest covers slow-moving outdated counts.
+- **Notifications** — Discord, Slack, email (via [Resend](https://resend.com)) and a generic HMAC-signed webhook for everything else, with global or per-project rules, severity thresholds, delivery dedupe, and retries with backoff. A daily digest covers slow-moving outdated counts.
 - **Pull requests that merge green** — PRs are created through the GitHub Git Data API as a single commit, with operator-preserving range rewrites (`^4.17.15 → ^4.17.21`), root-catalog edits for `catalog:` monorepos, and lockfile regeneration (`--ignore-scripts`, sandboxed) so `npm ci` passes on arrival. Deterministic branch names make retries converge instead of littering your repo.
 - **Local users with RBAC** — `viewer`, `maintainer`, and `admin` roles, enforced server-side on every route. No external identity provider required.
 - **Secrets sealed at rest** — GitHub tokens and channel credentials are AES-256-GCM encrypted with per-row binding; key rotation supported.
@@ -90,19 +92,29 @@ Everything is configured through environment variables — see [.env.example](.e
 | `SCAN_CONCURRENCY` | no | Parallel scans (default `3`) |
 | `ENABLE_LOCKFILE_REGEN` | no | Regenerate lockfiles in PRs (default `true`) |
 | `DISABLE_OSV` | no | Skip the OSV.dev advisory source |
+| `DISABLE_THREAT_INTEL` | no | Skip the EPSS + CISA KEV feeds (air-gapped installs) |
 | `METRICS_ENABLED` / `METRICS_TOKEN` | no | Prometheus `/metrics`, optionally bearer-gated |
 | `UPDATE_CHECK` | no | Check GitHub releases for a newer version and show a notice in the UI (default `true`; set `false` for air-gapped installs) |
 
 > [!TIP]
 > Use a **fine-grained personal access token** with `contents: read/write` and `pull requests: read/write` scoped to the repositories you track. Tokens can be set globally or per project in the UI, and are only ever stored sealed.
 
-**Notifications:** Discord needs only a webhook URL. Email needs a Resend API key and a verified sending domain — Discord-only works fine without one.
+**Notifications:** Discord and Slack need only an incoming-webhook URL. Email needs a Resend API key and a verified sending domain. The generic **webhook** channel POSTs a versioned JSON body to any URL you give it; set a signing secret and each request carries
+
+```
+X-Understory-Timestamp: 1786312800000
+X-Understory-Signature: sha256=<hex HMAC-SHA256 of "<timestamp>.<body>">
+```
+
+so the receiver can verify the call and reject replays. Because the URL is arbitrary, this channel can reach hosts inside your network — that is deliberate on a self-hosted tool, but it means the `notification: manage` permission is worth guarding.
 
 ## Automatic pull requests
 
 understory opens PRs on two independent tracks, both configured per project:
 
 **Security fixes** — when a scan finds a new vulnerability with an available fix, a PR is opened immediately, gated by a minimum severity and a maximum allowed version jump (never auto-ship a breaking major unless you say so). Fixes are deliberately *not* delayed by the cooldown below.
+
+Optionally, **"always fix exploited vulnerabilities"** lets a CVE in CISA's KEV catalogue bypass the severity threshold — severity is assigned once, before anyone is being attacked, while a KEV listing is a report that they now are. The maximum version jump still applies, so this never ships a surprise major.
 
 **Version bumps** — outdated direct dependencies are bumped to `latest` in one batched PR, bounded by:
 
@@ -147,5 +159,6 @@ Worth reading: `apps/web/DESIGN.md` for the UI language, and the schema comments
 
 > [!WARNING]
 > - Repositories **without a committed lockfile** currently scan to zero dependencies — declared ranges alone aren't resolved against the registry yet.
-> - `yarn.lock` and `pnpm-lock.yaml` are detected but not yet parsed; `bun.lockb` (binary) is not supported — commit the text `bun.lock` instead.
+> - `bun.lockb` (binary) is not supported — run `bun install --save-text-lockfile` and commit the text `bun.lock` instead.
+> - PR lockfile regeneration covers npm, bun, pnpm and uv. **yarn 1** has no lockfile-only install mode, so refreshing its lockfile would mean a full `yarn install` of untrusted dependencies inside the server — yarn projects get a manifest-only PR with a note instead. Berry regeneration works if `yarn` is on the container's `PATH`.
 > - Roles are global (not per-project) in this release.

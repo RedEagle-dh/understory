@@ -52,6 +52,7 @@ export function AutoPrCard({ project }: { project: ProjectDetail }) {
       autoPrEnabled: project.autoPrEnabled,
       autoPrMinSeverity: project.autoPrMinSeverity,
       autoPrMaxBump: project.autoPrMaxBump,
+      autoPrKevOverride: project.autoPrKevOverride,
       regenerateLockfile: project.regenerateLockfile,
       prBaseBranch: project.prBaseBranch ?? "",
       prLabels: (project.prLabels ?? []).join(", "),
@@ -61,6 +62,7 @@ export function AutoPrCard({ project }: { project: ProjectDetail }) {
         autoPrEnabled: value.autoPrEnabled,
         autoPrMinSeverity: value.autoPrMinSeverity,
         autoPrMaxBump: value.autoPrMaxBump,
+        autoPrKevOverride: value.autoPrKevOverride,
         regenerateLockfile: value.regenerateLockfile,
         prBaseBranch:
           value.prBaseBranch.trim() === "" ? null : value.prBaseBranch.trim(),
@@ -185,6 +187,28 @@ export function AutoPrCard({ project }: { project: ProjectDetail }) {
                               ))}
                             </SelectContent>
                           </Select>
+                        </Field>
+                      )}
+                    </form.Field>
+
+                    <form.Field name="autoPrKevOverride">
+                      {(field) => (
+                        <Field orientation="horizontal">
+                          <FieldLabel htmlFor={field.name} className="flex-1">
+                            Always fix exploited vulnerabilities
+                            <FieldDescription>
+                              Ignore the severity threshold when CISA lists the
+                              CVE as exploited in the wild. The maximum version
+                              bump still applies.
+                            </FieldDescription>
+                          </FieldLabel>
+                          <Switch
+                            id={field.name}
+                            checked={field.state.value}
+                            onCheckedChange={(checked) =>
+                              field.handleChange(checked)
+                            }
+                          />
                         </Field>
                       )}
                     </form.Field>

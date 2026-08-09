@@ -1,0 +1,11 @@
+{
+	"name": "pnpm-mono",
+	"private": true,
+	"dependencies": {
+		"lodash": "^4.17.15"
+	},
+	"devDependencies": {
+		"rimraf": "^3.0.2",
+		"typescript": "catalog:"
+	}
+}

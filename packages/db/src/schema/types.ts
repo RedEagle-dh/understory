@@ -81,6 +81,9 @@ export type AdvisorySource = (typeof ADVISORY_SOURCES)[number];
 export const NOTIFICATION_CHANNEL_TYPES = [
 	'email_resend',
 	'discord_webhook',
+	'slack_webhook',
+	/** The generic escape hatch: any HTTP endpoint, optionally HMAC-signed. */
+	'webhook',
 ] as const;
 export type NotificationChannelType =
 	(typeof NOTIFICATION_CHANNEL_TYPES)[number];

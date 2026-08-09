@@ -58,6 +58,10 @@ import {
 	type SchedulerService,
 } from './services/scheduler-service';
 import {
+	createThreatIntelService,
+	type ThreatIntelService,
+} from './services/threat-intel-service';
+import {
 	createUpdateCheckService,
 	type UpdateCheckService,
 } from './services/update-check-service';
@@ -79,6 +83,10 @@ import {
 	createNotificationsStore,
 	type NotificationsStore,
 } from './stores/notifications';
+import {
+	createPackageIndexStore,
+	type PackageIndexStore,
+} from './stores/package-index';
 import {
 	createPeerIssuesStore,
 	type PeerIssuesStore,
@@ -163,6 +171,7 @@ const stores = {
 	advisories: createAdvisoriesStore(db),
 	findings: createFindingsStore(db),
 	dependencyStatus: createDependencyStatusStore(db),
+	packageIndex: createPackageIndexStore(db),
 	peerIssues: createPeerIssuesStore(db),
 	settings: createSettingsStore(db),
 	auditLog: createAuditLogStore(db),
@@ -253,6 +262,7 @@ export interface AppEnv extends AppEnvironment {
 	readonly advisories: AdvisoriesStore;
 	readonly findings: FindingsStore;
 	readonly dependencyStatus: DependencyStatusStore;
+	readonly packageIndex: PackageIndexStore;
 	readonly peerIssues: PeerIssuesStore;
 	readonly registryCache: RegistryCacheStore;
 	readonly pullRequests: PullRequestsStore;
@@ -262,6 +272,7 @@ export interface AppEnv extends AppEnvironment {
 	readonly notificationService: NotificationService;
 	readonly prService: PrService;
 	readonly advisoryRefreshService: AdvisoryRefreshService;
+	readonly threatIntelService: ThreatIntelService;
 	readonly updateCheckService: UpdateCheckService;
 	/** Stateless, shared across every scan and the advisory-refresh job — see the comment on `npmClient`/`osvClient` below. */
 	readonly osv: OsvClient;
@@ -339,6 +350,15 @@ export function createEnvironment(input: EnvironmentInput): AppEnv {
 		log: deps.log,
 	});
 
+	const threatIntelService = createThreatIntelService({
+		advisories: stores.advisories,
+		fetchImpl: fetch,
+		epssApiUrl: env.EPSS_API_URL,
+		kevFeedUrl: env.KEV_FEED_URL,
+		enabled: !env.DISABLE_THREAT_INTEL,
+		log: deps.log,
+	});
+
 	const updateCheckService = createUpdateCheckService({
 		fetchImpl: fetch,
 		currentVersion: env.APP_VERSION,
@@ -372,6 +392,7 @@ export function createEnvironment(input: EnvironmentInput): AppEnv {
 		notificationService,
 		prService,
 		advisoryRefreshService,
+		threatIntelService,
 		updateCheckService,
 		osv: osvClient,
 		notifier: notificationService.notifier,

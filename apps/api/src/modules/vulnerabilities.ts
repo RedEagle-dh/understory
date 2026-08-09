@@ -7,8 +7,10 @@ import {
 	AdvisoryView,
 	FindingListItem,
 	FindingState,
+	GlobalFindingListItem,
 	toAdvisoryView,
 	toFindingListItem,
+	toGlobalFindingListItem,
 } from '../schemas/vulnerability';
 
 const ProjectIdParam = t.Object({
@@ -149,6 +151,104 @@ export function vulnerabilitiesModule() {
 						},
 					};
 				},
+			});
+
+			/**
+			 * The triage queue. Same lifecycle data as the per-project list,
+			 * but unscoped — during an incident the question is "what is the
+			 * worst thing open anywhere", and answering it by opening forty
+			 * projects in turn is not triage.
+			 */
+			const globalList = route({
+				id: 'vulnerabilities.globalList',
+				method: 'GET',
+				path: '/api/vulnerabilities',
+				policy: { permissions: { project: ['read'] } },
+				rateLimit: 'read',
+				params: t.Object({}),
+				query: t.Object({
+					severity: t.Optional(Severity),
+					state: t.Optional(FindingState),
+					direct: t.Optional(t.Boolean()),
+					hasFix: t.Optional(t.Boolean()),
+					kevOnly: t.Optional(t.Boolean()),
+					projectId: t.Optional(t.String({ maxLength: 64 })),
+					q: t.Optional(t.String({ maxLength: 200 })),
+					sort: t.Optional(
+						t.Union([
+							t.Literal('risk'),
+							t.Literal('severity'),
+							t.Literal('firstSeen'),
+						])
+					),
+					page: t.Optional(t.Number({ minimum: 1, default: 1 })),
+					pageSize: t.Optional(
+						t.Number({ minimum: 1, maximum: 200, default: 50 })
+					),
+				}),
+				body: t.Undefined(),
+				response: t.Object({
+					items: t.Array(GlobalFindingListItem, { maxItems: 200 }),
+					total: t.Number(),
+					page: t.Number(),
+					pageSize: t.Number(),
+				}),
+				errors: [],
+				docs: {
+					summary: 'Findings across every project, most urgent first',
+					tag: 'Vulnerabilities',
+				},
+				handler: async (ctx) => {
+					const page = ctx.query.page ?? 1;
+					const pageSize = ctx.query.pageSize ?? 50;
+					const result = await env.findings.listGlobal({
+						severity:
+							ctx.query.severity === undefined
+								? undefined
+								: [ctx.query.severity],
+						state: [ctx.query.state ?? 'open'],
+						isDirect: ctx.query.direct,
+						hasFix: ctx.query.hasFix,
+						kevOnly: ctx.query.kevOnly,
+						projectId: ctx.query.projectId,
+						q: ctx.query.q,
+						sort: ctx.query.sort ?? 'risk',
+						page,
+						pageSize,
+					});
+					return {
+						items: result.items.map(toGlobalFindingListItem),
+						total: result.total,
+						page,
+						pageSize,
+					};
+				},
+			});
+
+			const globalSummary = route({
+				id: 'vulnerabilities.globalSummary',
+				method: 'GET',
+				path: '/api/vulnerabilities/summary',
+				policy: { permissions: { project: ['read'] } },
+				rateLimit: 'read',
+				params: t.Object({}),
+				query: t.Object({}),
+				body: t.Undefined(),
+				response: t.Composite([
+					SeverityCounts,
+					t.Object({
+						/** Open findings CISA lists as exploited in the wild. */
+						kev: t.Number(),
+						/** Projects with at least one open finding. */
+						projects: t.Number(),
+					}),
+				]),
+				errors: [],
+				docs: {
+					summary: 'Fleet-wide open severity rollup',
+					tag: 'Vulnerabilities',
+				},
+				handler: async () => env.findings.globalOpenCounts(),
 			});
 
 			const get = route({
@@ -337,6 +437,8 @@ export function vulnerabilitiesModule() {
 				routes: [
 					list,
 					summary,
+					globalList,
+					globalSummary,
 					get,
 					ignore,
 					unignore,

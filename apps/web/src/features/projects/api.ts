@@ -65,6 +65,7 @@ export interface ProjectUpdateInput {
   autoPrEnabled?: boolean
   autoPrMinSeverity?: "low" | "moderate" | "high" | "critical"
   autoPrMaxBump?: "patch" | "minor" | "major"
+  autoPrKevOverride?: boolean
   autoBumpEnabled?: boolean
   autoBumpMaxKind?: "patch" | "minor" | "major"
   autoBumpMinReleaseAgeHours?: number

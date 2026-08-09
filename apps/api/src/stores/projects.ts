@@ -22,6 +22,7 @@ export interface UpdateProjectInput {
 	autoPrEnabled?: boolean;
 	autoPrMinSeverity?: ProjectRow['autoPrMinSeverity'];
 	autoPrMaxBump?: ProjectRow['autoPrMaxBump'];
+	autoPrKevOverride?: boolean;
 	autoBumpEnabled?: boolean;
 	autoBumpMaxKind?: ProjectRow['autoBumpMaxKind'];
 	autoBumpMinReleaseAgeHours?: number;

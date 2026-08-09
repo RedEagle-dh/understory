@@ -8,7 +8,11 @@ import { api } from "@/lib/api"
 import { unwrap } from "@/lib/api-error"
 import { qk } from "@/lib/query-keys"
 
-export type ChannelType = "email_resend" | "discord_webhook"
+export type ChannelType =
+  | "email_resend"
+  | "discord_webhook"
+  | "slack_webhook"
+  | "webhook"
 export type EventType =
   | "new_vulnerabilities"
   | "resolved_vulnerabilities"

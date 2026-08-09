@@ -8,6 +8,11 @@ export const qk = {
   session: () => ["session"] as const,
   dashboard: () => ["dashboard", "summary"] as const,
   projects: () => ["projects"] as const,
+  /** Fleet-wide views — deliberately outside the `projects` prefix so a
+   *  per-project invalidation does not refetch them, and vice versa. */
+  packages: () => ["packages"] as const,
+  packageUsages: (name: string) => ["packages", "usages", name] as const,
+  inbox: () => ["inbox"] as const,
   project: (id: string) => ["projects", id] as const,
   dependencies: (id: string) => ["projects", id, "dependencies"] as const,
   vulns: (id: string) => ["projects", id, "vulnerabilities"] as const,

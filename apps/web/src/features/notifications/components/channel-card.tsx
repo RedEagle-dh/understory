@@ -8,7 +8,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip"
-import { Mail, MessageSquare, Pencil, Trash2 } from "lucide-react"
+import {
+  Hash,
+  Mail,
+  MessageSquare,
+  Pencil,
+  Trash2,
+  Webhook,
+} from "lucide-react"
 import { useState } from "react"
 import { ConfirmDialog } from "@/components/common/confirm-dialog"
 import { RelativeTime } from "@/components/common/relative-time"
@@ -18,20 +25,36 @@ import type { ChannelListItem } from "../api"
 import { useDeleteChannel, useTestChannel, useUpdateChannel } from "../api"
 import { AddChannelDialog } from "./add-channel-dialog"
 
+const TYPE_ICONS = {
+  email_resend: Mail,
+  discord_webhook: MessageSquare,
+  slack_webhook: Hash,
+  webhook: Webhook,
+} as const
+
+function str(value: unknown): string {
+  return typeof value === "string" ? value : ""
+}
+
+/** A one-line "where does this go" that never reveals a secret. */
 function targetSummary(channel: ChannelListItem): string {
+  const config = channel.configPublic
+
   if (channel.type === "email_resend") {
-    const to = channel.configPublic.to
+    const to = config.to
     return Array.isArray(to) ? to.join(", ") : ""
   }
-  const host =
-    typeof channel.configPublic.host === "string"
-      ? channel.configPublic.host
-      : "discord.com"
-  const webhookId =
-    typeof channel.configPublic.webhookId === "string"
-      ? channel.configPublic.webhookId
-      : ""
-  return webhookId === "" ? host : `${host}/…/${webhookId.slice(0, 8)}…`
+
+  if (channel.type === "webhook") {
+    const target = `${str(config.host)}${str(config.path)}`
+    return config.signed === true ? `${target} · signed` : target
+  }
+
+  const isSlack = channel.type === "slack_webhook"
+  const host = str(config.host) || (isSlack ? "hooks.slack.com" : "discord.com")
+  // Discord exposes the webhook id, Slack the workspace id; both are safe.
+  const id = str(isSlack ? config.workspaceId : config.webhookId)
+  return id === "" ? host : `${host}/…/${id.slice(0, 8)}…`
 }
 
 export function ChannelCard({ channel }: { channel: ChannelListItem }) {
@@ -45,7 +68,7 @@ export function ChannelCard({ channel }: { channel: ChannelListItem }) {
     message?: string
   } | null>(null)
 
-  const Icon = channel.type === "email_resend" ? Mail : MessageSquare
+  const Icon = TYPE_ICONS[channel.type]
 
   return (
     <Card>
